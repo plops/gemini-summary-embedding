@@ -5,5 +5,6 @@ description = "Load video summaries from sqlite file and compute embeddings"
 readme = "README.md"
 dependencies = [
     "sqlite-minutils",
-    "google-genai"
-    ]
+    "google-genai",
+    "numpy>=2.3.1",
+]
