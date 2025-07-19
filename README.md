@@ -28,3 +28,6 @@ Check python code (detects unused imports). Use --fix to try automatic correctio
 uv run ruff check
 ```
 
+Using UV in VSCode. Install Ruff extension
+Execute `C-S-p Restart Ruff` in Vscode
+More information: https://github.com/astral-sh/ruff-vscode/blob/main/README.md

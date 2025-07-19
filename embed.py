@@ -12,4 +12,4 @@ from google import genai
 
 
 # %% Load the database with video summaries
-db = Database("out.db")
+db = Database("out.db") 

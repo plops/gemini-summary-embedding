@@ -1,0 +1,9 @@
+[project]
+name = "embed"
+version = "0.1.0"
+description = "Load video summaries from sqlite file and compute embeddings"
+readme = "README.md"
+dependencies = [
+    "sqlite-minutils",
+    "google-genai"
+    ]
