@@ -17,3 +17,14 @@ Use `uv` to install them like by running like this:
 ```
 uv run embed.py
 ```
+
+Format python files
+```
+uv run ruff format
+```
+
+Check python code (detects unused imports). Use --fix to try automatic correction.
+```
+uv run ruff check
+```
+
