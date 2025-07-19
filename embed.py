@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
+#
+# /// script
+# dependencies = [
+#   "sqlite-minutils",
+#   "google-genai",
+# ]
+# ///
 
 # open the sqlite database out.db
-import sqlite_minutils.db
+from sqlite_minutils.db import *
+from google import genai
 
-db = sqlite_minutils.db.DB("out.db")
+db = Database("out.db")
