@@ -134,29 +134,32 @@ print(f"Found {len(rows_to_embed)} summaries to embed.")
 
 # Found 2788 summaries to embed.
 
+
+
+
 # --- 4. BATCH EMBEDDING AND DATABASE UPDATE ---
-# The Gemini API has a limit on items per request (e.g., 100).
+# The Gemini API has a limit of 100 items per request.
 # We must process the data in batches.
 BATCH_SIZE = 100
 
 for i in range(0, len(rows_to_embed), BATCH_SIZE):
-    # Get the current batch of rows
     batch_rows = rows_to_embed[i:i + BATCH_SIZE]
-    
-    # Unzip the batch into separate lists of identifiers and summaries
     ids_batch, summaries_batch = zip(*batch_rows)
 
-    print(f"\nProcessing batch {i//BATCH_SIZE + 1} ({len(summaries_batch)} items)...")
+    print(f"\nProcessing batch {i//BATCH_SIZE + 1} of {((len(rows_to_embed) - 1) // BATCH_SIZE) + 1} ({len(summaries_batch)} items)...")
 
     try:
         # Get embeddings from the Gemini API
+        # Using the recommended model and specifying the task_type for better results.
         result = client.models.embed_content(
-            model="embedding-001",
-            contents=list(summaries_batch)
+            model="gemini-embedding-001",
+            contents=list(summaries_batch),
+            # Task type is crucial for optimizing embeddings for your specific use case.
+            config=types.EmbedContentConfig(task_type="CLUSTERING")
         )
 
         # The API returns embeddings in the same order as the input content.
-        # Now, update the database rows one by one.
+        # Now, update the database rows.
         print("Storing embeddings in the database...")
 
 # >>> result
@@ -193,36 +196,46 @@ for i in range(0, len(rows_to_embed), BATCH_SIZE):
 #       ]
 #     ),
 
-        for identifier, embedding_values in zip(ids_batch, result['embedding']):
-            # Convert the list of floats to a numpy array of float32, then to raw bytes (BLOB)
-            vector_blob = np.array(embedding_values, dtype=np.float32).tobytes()
 
-            # Use the .update() method from sqlite-utils to update the row
-            # with the matching primary key ('identifier').
-            items.update(pk=identifier, updates={'embedding': vector_blob})
-        
+        # The result object has an 'embeddings' attribute which is a list.
+        # We zip the original IDs with this list of embedding objects.
+        for identifier, embedding_obj in zip(ids_batch, result.embeddings):
+            # Convert the list of floats from embedding_obj.values to a
+            # numpy array of float32, then to raw bytes (BLOB)
+            vector_blob = np.array(embedding_obj.values, dtype=np.float32).tobytes()
+
+            # Use the .update() method from sqlite-minutils.
+            # The first argument is the primary key, the second is a dict of columns to update.
+            items.update(identifier, {'embedding': vector_blob})
+
         print(f"Batch {i//BATCH_SIZE + 1} completed successfully.")
 
     except Exception as e:
         print(f"An error occurred during batch {i//BATCH_SIZE + 1}: {e}")
         print("Skipping this batch and continuing...")
 
-    # Be a good citizen and respect API rate limits
+    # Be a good citizen and respect API rate limits.
     time.sleep(1)
 
 print("\nEmbedding process finished.")
 
+
 # --- 5. VERIFICATION (Optional) ---
 # Let's read one back to prove it worked
 print("\n--- Verification ---")
-first_item_with_embedding = next(items.rows_where("embedding IS NOT NULL"))
-pk = first_item_with_embedding['identifier']
-embedding_blob = first_item_with_embedding['embedding']
+try:
+    # Use next() to get the first item from the generator without loading all rows.
+    first_item_with_embedding = next(items.rows_where("embedding IS NOT NULL"))
+    pk = first_item_with_embedding['identifier']
+    embedding_blob = first_item_with_embedding['embedding']
 
-# Convert the blob back to a numpy array
-retrieved_vector = np.frombuffer(embedding_blob, dtype=np.float32)
+    # Convert the blob back to a numpy array
+    retrieved_vector = np.frombuffer(embedding_blob, dtype=np.float32)
 
-print(f"Retrieved embedding for item with identifier: {pk}")
-print(f"Data type of stored value: {type(embedding_blob)}") # Should be <class 'bytes'>
-print(f"Shape of decoded vector: {retrieved_vector.shape}")
-print(f"First 5 values: {retrieved_vector[:5]}")
+    print(f"Successfully retrieved embedding for item with identifier: {pk}")
+    print(f"Data type of stored value in DB: {type(embedding_blob)}") # Should be <class 'bytes'>
+    print(f"Shape of decoded vector: {retrieved_vector.shape}")
+    print(f"First 5 values of vector: {retrieved_vector[:5]}")
+
+except StopIteration:
+    print("Could not find any items with embeddings to verify.")
