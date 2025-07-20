@@ -4,21 +4,22 @@
 # dependencies = [
 #   "sqlite-minutils",
 #   "google-genai",
+#   "numpy",
 # ]
 # ///
 
 from sqlite_minutils.db import *
 from google import genai
 from google.genai import types
-import numpy as np # uv add numpy
+import numpy as np  # uv add numpy
 import time
-import sqlite_utils # We use this for the type hint, but sqlite-minutils provides the objects
+import sqlite_minutils  # We use this for the type hint, but sqlite-minutils provides the objects
 
 
 # --- 1. SETUP ---
 # Load the database and GenAI client
-db = Database("out.db")
-items: sqlite_utils.db.Table = Table(db, 'items')
+db = Database("summaries_20250720.db")
+items: sqlite_minutils.db.Table = Table(db, "items")
 
 # Read the Gemini API key from disk
 try:
@@ -26,9 +27,10 @@ try:
         api_key = f.read().strip()
     client = genai.Client(api_key=api_key)
 except FileNotFoundError:
-    print("Error: api_key.txt not found. Please create this file with your Gemini API key.")
+    print(
+        "Error: api_key.txt not found. Please create this file with your Gemini API key."
+    )
     exit()
-
 
 
 # # Check the size distribution of the summaries
@@ -99,6 +101,7 @@ except FileNotFoundError:
 
 # # Store the embeddings in the database
 
+# Pricing $0.15 per 1,000,000 tokens for embedding.
 
 # # Collect all the summaries and their identifiers
 # summaries = []
@@ -108,23 +111,22 @@ except FileNotFoundError:
 #     ids.append(row['identifier'])
 
 
-
-
-
 # --- 2. PREPARE THE DATABASE ---
 # Add an 'embedding' column of type BLOB if it doesn't already exist.
 # This is the most efficient way to store vector data.
-if 'embedding' not in items.columns_dict:
+if "embedding" not in items.columns_dict:
     print("Adding 'embedding' column (BLOB) to the 'items' table...")
-    items.add_column('embedding', 'BLOB')
+    items.add_column("embedding", "BLOB")
     print("Column added.")
 
 # --- 3. COLLECT DATA FOR EMBEDDING ---
 # It's more efficient to only embed summaries for rows that don't have one yet.
 # We collect tuples of (identifier, summary)
 rows_to_embed = []
-for row in items.rows_where("embedding IS NULL AND summary IS NOT NULL AND summary != ''"):
-    rows_to_embed.append((row['identifier'], row['summary']))
+for row in items.rows_where(
+    "embedding IS NULL AND summary IS NOT NULL AND summary != ''"
+):
+    rows_to_embed.append((row["identifier"], row["summary"]))
 
 if not rows_to_embed:
     print("No new summaries to embed. All items are up to date.")
@@ -135,18 +137,18 @@ print(f"Found {len(rows_to_embed)} summaries to embed.")
 # Found 2788 summaries to embed.
 
 
-
-
 # --- 4. BATCH EMBEDDING AND DATABASE UPDATE ---
 # The Gemini API has a limit of 100 items per request.
 # We must process the data in batches.
-BATCH_SIZE = 100
+BATCH_SIZE = 3
 
 for i in range(0, len(rows_to_embed), BATCH_SIZE):
-    batch_rows = rows_to_embed[i:i + BATCH_SIZE]
+    batch_rows = rows_to_embed[i : i + BATCH_SIZE]
     ids_batch, summaries_batch = zip(*batch_rows)
 
-    print(f"\nProcessing batch {i//BATCH_SIZE + 1} of {((len(rows_to_embed) - 1) // BATCH_SIZE) + 1} ({len(summaries_batch)} items)...")
+    print(
+        f"\nProcessing batch {i // BATCH_SIZE + 1} of {((len(rows_to_embed) - 1) // BATCH_SIZE) + 1} ({len(summaries_batch)} items)..."
+    )
 
     try:
         # Get embeddings from the Gemini API
@@ -155,47 +157,46 @@ for i in range(0, len(rows_to_embed), BATCH_SIZE):
             model="gemini-embedding-001",
             contents=list(summaries_batch),
             # Task type is crucial for optimizing embeddings for your specific use case.
-            config=types.EmbedContentConfig(task_type="CLUSTERING")
+            config=types.EmbedContentConfig(task_type="CLUSTERING"),
         )
 
         # The API returns embeddings in the same order as the input content.
         # Now, update the database rows.
         print("Storing embeddings in the database...")
 
-# >>> result
-# EmbedContentResponse(
-#   embeddings=[
-#     ContentEmbedding(
-#       values=[
-#         0.007794169,
-#         -0.022866383,
-#         -0.03302118,
-#         0.04320251,
-#         0.0021397904,
-#         <... 763 more items ...>,
-#       ]
-#     ),
-#     ContentEmbedding(
-#       values=[
-#         -0.009899384,
-#         0.010539095,
-#         -0.054872405,
-#         -0.009400869,
-#         0.03453479,
-#         <... 763 more items ...>,
-#       ]
-#     ),
-#     ContentEmbedding(
-#       values=[
-#         -0.019019835,
-#         -0.022392415,
-#         -0.042795807,
-#         -0.013381309,
-#         0.05283021,
-#         <... 763 more items ...>,
-#       ]
-#     ),
-
+        # >>> result
+        # EmbedContentResponse(
+        #   embeddings=[
+        #     ContentEmbedding(
+        #       values=[
+        #         0.007794169,
+        #         -0.022866383,
+        #         -0.03302118,
+        #         0.04320251,
+        #         0.0021397904,
+        #         <... 763 more items ...>,
+        #       ]
+        #     ),
+        #     ContentEmbedding(
+        #       values=[
+        #         -0.009899384,
+        #         0.010539095,
+        #         -0.054872405,
+        #         -0.009400869,
+        #         0.03453479,
+        #         <... 763 more items ...>,
+        #       ]
+        #     ),
+        #     ContentEmbedding(
+        #       values=[
+        #         -0.019019835,
+        #         -0.022392415,
+        #         -0.042795807,
+        #         -0.013381309,
+        #         0.05283021,
+        #         <... 763 more items ...>,
+        #       ]
+        #     ),
 
         # The result object has an 'embeddings' attribute which is a list.
         # We zip the original IDs with this list of embedding objects.
@@ -206,16 +207,16 @@ for i in range(0, len(rows_to_embed), BATCH_SIZE):
 
             # Use the .update() method from sqlite-minutils.
             # The first argument is the primary key, the second is a dict of columns to update.
-            items.update(identifier, {'embedding': vector_blob})
+            items.update(identifier, {"embedding": vector_blob})
 
-        print(f"Batch {i//BATCH_SIZE + 1} completed successfully.")
+        print(f"Batch {i // BATCH_SIZE + 1} completed successfully.")
 
     except Exception as e:
-        print(f"An error occurred during batch {i//BATCH_SIZE + 1}: {e}")
+        print(f"An error occurred during batch {i // BATCH_SIZE + 1}: {e}")
         print("Skipping this batch and continuing...")
 
     # Be a good citizen and respect API rate limits.
-    time.sleep(1)
+    time.sleep(3)
 
 print("\nEmbedding process finished.")
 
@@ -226,14 +227,16 @@ print("\n--- Verification ---")
 try:
     # Use next() to get the first item from the generator without loading all rows.
     first_item_with_embedding = next(items.rows_where("embedding IS NOT NULL"))
-    pk = first_item_with_embedding['identifier']
-    embedding_blob = first_item_with_embedding['embedding']
+    pk = first_item_with_embedding["identifier"]
+    embedding_blob = first_item_with_embedding["embedding"]
 
     # Convert the blob back to a numpy array
     retrieved_vector = np.frombuffer(embedding_blob, dtype=np.float32)
 
     print(f"Successfully retrieved embedding for item with identifier: {pk}")
-    print(f"Data type of stored value in DB: {type(embedding_blob)}") # Should be <class 'bytes'>
+    print(
+        f"Data type of stored value in DB: {type(embedding_blob)}"
+    )  # Should be <class 'bytes'>
     print(f"Shape of decoded vector: {retrieved_vector.shape}")
     print(f"First 5 values of vector: {retrieved_vector[:5]}")
 
