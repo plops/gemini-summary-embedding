@@ -120,6 +120,11 @@ if "embedding" not in items.columns_dict:
     print("Column added.")
 
 # --- 3. COLLECT DATA FOR EMBEDDING ---
+
+# Print number of rows in the table
+print(f"Total items in the database: {len(list(items.rows))}")
+
+
 # It's more efficient to only embed summaries for rows that don't have one yet.
 # We collect tuples of (identifier, summary)
 rows_to_embed = []
@@ -140,7 +145,7 @@ print(f"Found {len(rows_to_embed)} summaries to embed.")
 # --- 4. BATCH EMBEDDING AND DATABASE UPDATE ---
 # The Gemini API has a limit of 100 items per request.
 # We must process the data in batches.
-BATCH_SIZE = 3
+BATCH_SIZE = 1
 
 for i in range(0, len(rows_to_embed), BATCH_SIZE):
     batch_rows = rows_to_embed[i : i + BATCH_SIZE]
