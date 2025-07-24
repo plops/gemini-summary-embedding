@@ -220,8 +220,9 @@ for i in range(0, len(rows_to_embed), BATCH_SIZE):
         print(f"An error occurred during batch {i // BATCH_SIZE + 1}: {e}")
         print("Skipping this batch and continuing...")
 
-    # Be a good citizen and respect API rate limits.
-    time.sleep(3)
+    # Be a good citizen and respect API rate limits. https://ai.google.dev/gemini-api/docs/rate-limits#free-tier
+    # Gemini Embedding 	100 requests per minute, 30,000 tokens per minute, 1,000 requests per day
+    time.sleep(30)
 
 print("\nEmbedding process finished.")
 
