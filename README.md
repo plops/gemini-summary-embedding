@@ -1,3 +1,12 @@
+# Contents
+
+|-----------+-------------------------------------------------------------------------------------------------------------------------------------|
+| file      | purpose                                                                                                                             |
+|-----------+-------------------------------------------------------------------------------------------------------------------------------------|
+| embed.py  | call google gemini to compute embeddings for each video summary (this free google service is rate limited to 1000 requests per day) |
+| loaddb.py | load the sqlite3 database with embeddings and use umap to visualize                                                                 |
+
+
 # Dependencies
 
 Check if a python is already present
