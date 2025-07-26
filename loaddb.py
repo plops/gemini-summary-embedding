@@ -4,8 +4,11 @@ import umap
 import umap.plot
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pickle
+
 sns.set(style='white', context='notebook', rc={'figure.figsize':(14,10)})
 
+debug = False
 
 db = Database("summaries_20250720_embed.db")
 tab = db.table('items')
@@ -16,13 +19,29 @@ for row in tab.rows:
     if emb_bytes is not None:
         # load float32 array using numpy from bytes
         emb=np.frombuffer(emb_bytes, dtype='float32')
-        print(f"{row['identifier']} {emb[0]} {emb[1]} {emb[2]}")
+        if debug:
+            print(f"{row['identifier']} {emb[0]} {emb[1]} {emb[2]}")
         res.append(emb)
 
 a = np.array(res)
 
-reducer = umap.UMAP()
-reducer.fit(a)
+# if reducer.pkl exists, load it
+
+reducer = None
+with open('reducer.pkl', 'rb') as f:
+    f.seek(0)
+    reducer = pickle.load(f)
+    print('Loaded existing reducer from file')
+
+if reducer is None:
+    reducer = umap.UMAP()
+    print('Will compute UMAP embedding')
+    reducer.fit(a)
+
+    with open('reducer.pkl', 'wb') as f:
+        pickle.dump(reducer, f) # 188MB
+
+
 
 embedding = reducer.embedding_
 
