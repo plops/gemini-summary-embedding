@@ -28,7 +28,8 @@ a = np.array(res)
 # if reducer.pkl exists, load it
 
 reducer = None
-with open('reducer.pkl', 'rb') as f:
+reducer_fn = 'reducer.pkl'
+with open(reducer_fn, 'rb') as f:
     f.seek(0)
     reducer = pickle.load(f)
     print('Loaded existing reducer from file')
@@ -38,16 +39,18 @@ if reducer is None:
     print('Will compute UMAP embedding')
     reducer.fit(a)
 
-    with open('reducer.pkl', 'wb') as f:
+    with open(reducer_fn, 'wb') as f:
         pickle.dump(reducer, f) # 188MB
 
 
 
-embedding = reducer.embedding_
-
+# embedding = reducer.embedding_
 # plt.scatter(embedding[:,0], embedding[:,1], cmap='Spectral', s=5)
 # plt.gca().set_aspect('equal','datalim')
 # plt.colorbar(boundaries=np.arange(11)-.5).set_ticks(np.arange(10))
 
-umap.plot.points(reducer)
-plt.savefig('youtube2.png')
+#umap.plot.points(reducer)
+#plt.savefig('youtube2.png')
+
+p = umap.plot.interactive(reducer)
+umap.plot.show(p)
