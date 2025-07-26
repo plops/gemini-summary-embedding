@@ -54,7 +54,21 @@ if reducer is None:
 # # plt.savefig('youtube3.png')
 
 # dask and scikit-image.
-# ualt.savefig('youtube4.png')
+# umap.plot.connectivity(reducer,edge_bundling='hammer')
+# plt.savefig('youtube4.png')
+
+# umap.plot.diagnostic(reducer,diagnostic_type='pca')
+# plt.savefig('youtube_pca.png')
+
+# umap.plot.diagnostic(reducer,diagnostic_type='vq')
+# plt.savefig('youtube_vectorquant.png')
+
+# umap.plot.diagnostic(reducer,diagnostic_type='local_dim')
+# plt.savefig('youtube_localdim.png')
+# # blue means low local dimension
+
+umap.plot.diagnostic(reducer, diagnostic_type='neighborhood')
+plt.savefig('youtube_neighborhood.png')
 
 # p = umap.plot.interactive(reducer)
 # type(p)
