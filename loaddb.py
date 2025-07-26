@@ -24,16 +24,21 @@ for row in tab.rows:
         emb = np.frombuffer(emb_bytes, dtype='float32')
         if debug:
             print(f"{row['identifier']} {emb[0]} {emb[1]} {emb[2]}")
-        res.append(emb)
         # I only want the first two lines from the summary
-        summarylines = row['summary'].split('\n')
+        # and I don't want summaries starting with: Error: resource exhausted, Error: value error, emulate
+        suma = row['summary']
+        if suma is None:
+            continue
+        if suma.startswith('Error: resource exhausted') or suma.startswith('Error: value error') or suma.startswith('emulate'):
+            continue
+        res.append(emb)
+        summarylines = suma.split('\n')
         # Delete any title line containing Abstract
-        summarylines = [line for line in summarylines if
-                        "Abstract" not in line and
-                        "Okay, here" not in line and
-                        "Here's" not in line]
-        first_lines = summarylines[:2]
-        res_text.append({"id": row['identifier'], "summary": " ".join(first_lines)})
+        summarylines = [line.strip() for line in summarylines if
+                        "abstract" not in line.lower() and "okay, here" not in line.lower() and "here's" not in line.lower() and "here is" not in line.lower()]
+        text = " ".join(summarylines).strip()
+        text = text[:min(100, len(text))]
+        res_text.append({"id": row['identifier'], "summary": text})
         res_id.append(row['identifier'])
 dft = pd.DataFrame(res_text)
 a = np.array(res)
@@ -42,13 +47,16 @@ a = np.array(res)
 
 reducer = None
 reducer_fn = 'reducer.pkl'
-with open(reducer_fn, 'rb') as f:
-    f.seek(0)
-    reducer = pickle.load(f)
-    print('Loaded existing reducer from file')
+try:
+    with open(reducer_fn, 'rb') as f:
+        f.seek(0)
+        reducer = pickle.load(f)
+        print('Loaded existing reducer from file')
+except FileNotFoundError:
+    pass
 
 if reducer is None:
-    reducer = umap.UMAP()
+    reducer = umap.UMAP(n_neighbors=7, min_dist=.5)
     print('Will compute UMAP embedding')
     reducer.fit(a)
 
