@@ -26,7 +26,7 @@ for row in tab.rows:
             print(f"{row['identifier']} {emb[0]} {emb[1]} {emb[2]}")
         # I only want the first two lines from the summary
         # and I don't want summaries starting with: Error: resource exhausted, Error: value error, emulate
-        suma = row['summary']
+        suma = row['summary'].strip()
         if suma is None:
             continue
         if suma.startswith('Error: resource exhausted') or suma.startswith('Error: value error') or suma.startswith('emulate'):
@@ -38,7 +38,8 @@ for row in tab.rows:
                         "abstract" not in line.lower() and "okay, here" not in line.lower() and "here's" not in line.lower() and "here is" not in line.lower()]
         text = " ".join(summarylines).strip()
         text = text[:min(100, len(text))]
-        res_text.append({"id": row['identifier'], "summary": text})
+        res_text.append({#"id": row['identifier'],
+                         "summary": text})
         res_id.append(row['identifier'])
 dft = pd.DataFrame(res_text)
 a = np.array(res)
@@ -56,7 +57,7 @@ except FileNotFoundError:
     pass
 
 if reducer is None:
-    reducer = umap.UMAP(n_neighbors=7, min_dist=.5)
+    reducer = umap.UMAP(n_neighbors=10, min_dist=.1)
     print('Will compute UMAP embedding')
     reducer.fit(a)
 
