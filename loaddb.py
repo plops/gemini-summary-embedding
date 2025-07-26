@@ -17,6 +17,7 @@ tab = db.table('items')
 res = []
 res_text = []
 res_id = []
+res_fulltext = []
 for row in tab.rows:
     emb_bytes = row['embedding']
     if emb_bytes is not None:
@@ -40,7 +41,10 @@ for row in tab.rows:
         text = text[:min(100, len(text))]
         res_text.append({#"id": row['identifier'],
                          "summary": text})
+        res_fulltext.append({"summary": row['summary']})
         res_id.append(row['identifier'])
+dff = pd.DataFrame(res_fulltext)
+dff.to_csv('fulltext.csv', index=False)
 dft = pd.DataFrame(res_text)
 a = np.array(res)
 

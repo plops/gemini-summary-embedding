@@ -20,7 +20,7 @@ except FileNotFoundError:
     exit(-1)
 
 # 2019 Aurelien Geron p.256
-scan = DBSCAN(eps=.05, min_samples=5)
+scan = DBSCAN(eps=.15, min_samples=5)
 scan.fit(reducer.embedding_)
 
 
@@ -28,3 +28,4 @@ embedding = reducer.embedding_
 plt.scatter(embedding[:, 0], embedding[:, 1], c=scan.labels_, cmap='Spectral', s=5)
 plt.gca().set_aspect('equal', 'datalim')
 plt.savefig('cluster.png')
+
