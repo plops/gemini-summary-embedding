@@ -27,6 +27,11 @@ for row in tab.rows:
         res.append(emb)
         # I only want the first two lines from the summary
         summarylines = row['summary'].split('\n')
+        # Delete any title line containing Abstract
+        summarylines = [line for line in summarylines if
+                        "Abstract" not in line and
+                        "Okay, here" not in line and
+                        "Here's" not in line]
         first_lines = summarylines[:2]
         res_text.append({"id": row['identifier'], "summary": " ".join(first_lines)})
         res_id.append(row['identifier'])
