@@ -50,7 +50,12 @@ if reducer is None:
 # plt.colorbar(boundaries=np.arange(11)-.5).set_ticks(np.arange(10))
 
 #umap.plot.points(reducer)
-#plt.savefig('youtube2.png')
+# umap.plot.connectivity(reducer,show_points=True)
+# # plt.savefig('youtube3.png')
 
-p = umap.plot.interactive(reducer)
-umap.plot.show(p)
+# dask and scikit-image.
+# ualt.savefig('youtube4.png')
+
+# p = umap.plot.interactive(reducer)
+# type(p)
+# umap.plot.show(p)
