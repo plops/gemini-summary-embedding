@@ -8,6 +8,7 @@ import time
 import umap.plot
 import pandas as pd
 from matplotlib import pyplot as plt
+import pickle
 
 from google import genai
 from google.genai import types
@@ -23,28 +24,51 @@ except FileNotFoundError:
 
 
 
-# load a from file
+# load embeddings `a` from file. This has been extracted from the sqlite3 database with text and embeddings using
+# 01_start/loaddb.py. This python script also creates the files `parts.csv` and `fulltext.csv` which contain
+# the first 100 characters and full summaries of the videos.
+
 a = np.load('../01_start/embeddings.npy')
-reducer3 = UMAP(n_neighbors=5, min_dist=.1, n_components=4)
-reducer2 = UMAP(n_neighbors=12, min_dist=.13, n_components=2)
-print('Will compute UMAP embedding')
-# measure time for fitting
-start_time = time.time()
-reducer3.fit(a)
-reducer2.fit(a)
-end_time = time.time()
-print(f"UMAP fitting time: {end_time - start_time:.3f} seconds")
-
-# Setup and fit clusters
-start_time = time.time()
-print('Will compute DBSCAN clustering')
-scan = DBSCAN(eps=.3, min_samples=5)
-scan.fit(reducer3.embedding_)
-end_time = time.time()
-print(f"DBSCAN clustering time: {end_time - start_time:.3f} seconds")
-
 dft= pd.read_csv('../01_start/parts.csv')
 dff= pd.read_csv('../01_start/fulltext.csv')
+
+reducers = None
+reducer_fn = 'reducer.pkl'
+try:
+    with open(reducer_fn, 'rb') as f:
+        f.seek(0)
+        reducers = pickle.load(f)
+        reducer2, reducer3, scan = reducers
+        print('Loaded existing UMAP reducer objects and DBSCAN clustering object from file')
+except FileNotFoundError:
+    pass
+
+if reducers is None:
+    reducer3 = UMAP(n_neighbors=5, min_dist=.1, n_components=4)
+    reducer2 = UMAP(n_neighbors=12, min_dist=.13, n_components=2)
+    print('Will compute UMAP embedding')
+    # measure time for fitting
+    start_time = time.time()
+    reducer3.fit(a)
+    reducer2.fit(a)
+    end_time = time.time()
+    print(f"UMAP fitting time: {end_time - start_time:.3f} seconds")
+
+
+    # Setup and fit clusters
+    start_time = time.time()
+    print('Will compute DBSCAN clustering')
+    scan = DBSCAN(eps=.3, min_samples=5)
+    scan.fit(reducer3.embedding_)
+    end_time = time.time()
+    print(f"DBSCAN clustering time: {end_time - start_time:.3f} seconds")
+
+    with open(reducer_fn, 'wb') as f:
+        reducers = [reducer2, reducer3, scan]
+        pickle.dump(reducers, f) # 98MB
+
+
+
 embedding = reducer2.embedding_
 plt.scatter(embedding[:,0], embedding[:,1], c=scan.labels_, cmap='Spectral', s=5)
 plt.gca().set_aspect('equal','datalim')
@@ -62,20 +86,20 @@ print("Number of clusters found:", len(set(scan.labels_)) - (1 if -1 in scan.lab
 
 # Print clusters sorted by size
 clusters, counts = np.unique(scan.labels_, return_counts=True)
-for cluster, count in sorted(zip(clusters, counts), key=lambda x: x[1], reverse=True):
-    if cluster != -1:  # Exclude noise points
-        print(f"Cluster {cluster}: {count} points")
+# for cluster, count in sorted(zip(clusters, counts), key=lambda x: x[1], reverse=True):
+#     if cluster != -1:  # Exclude noise points
+#          print(f"Cluster {cluster}: {count} points")
 
 # For each cluster (again sorted by number of entries) print 3 random samples of the fulltext
 res = []
 for cluster, count in sorted(zip(clusters, counts), key=lambda x: x[1], reverse=True):
     if cluster != -1:  # Exclude noise points
-        print(f"Cluster {cluster}: {count} points")
+        # print(f"Cluster {cluster}: {count} points")
         samples = dff[dft2['cluster'] == cluster].sample(n=3, random_state=42)
         for i, row in samples.iterrows():
             res.append({'cluster': cluster, 'summary': row['summary']})
-            print(f"Sample {i}: {row['summary'][:200]}...")
-        print()
+            # print(f"Sample {i}: {row['summary'][:200]}...")
+        # print()
 
 df = pd.DataFrame(res)
 # >>> df
@@ -131,14 +155,14 @@ class Cluster(pydantic.BaseModel):
     title: str
     id: int
 
-response = client.models.generate_content(
-    model="gemini-2.5-flash-lite",
-    contents=prompt,
-    config={"response_mime_type": "application/json",
-            "response_schema": list[Cluster],
-            },
-)
-print(response.text)
+# response = client.models.generate_content(
+#     model="gemini-2.5-flash-lite",
+#     contents=prompt,
+#     config={"response_mime_type": "application/json",
+#             "response_schema": list[Cluster],
+#             },
+# )
+# print(response.text)
 
 
 def main():
