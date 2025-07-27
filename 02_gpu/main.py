@@ -12,8 +12,8 @@ from matplotlib import pyplot as plt
 
 # load a from file
 a = np.load('../01_start/embeddings.npy')
-reducer3 = UMAP(n_neighbors=4, min_dist=.1, n_components=4)
-reducer2 = UMAP(n_neighbors=4, min_dist=.1, n_components=2)
+reducer3 = UMAP(n_neighbors=5, min_dist=.1, n_components=4)
+reducer2 = UMAP(n_neighbors=12, min_dist=.13, n_components=2)
 print('Will compute UMAP embedding')
 # measure time for fitting
 start_time = time.time()
@@ -25,7 +25,7 @@ print(f"UMAP fitting time: {end_time - start_time:.3f} seconds")
 # Setup and fit clusters
 start_time = time.time()
 print('Will compute DBSCAN clustering')
-scan = DBSCAN(eps=.4, min_samples=5)
+scan = DBSCAN(eps=.3, min_samples=5)
 scan.fit(reducer3.embedding_)
 end_time = time.time()
 print(f"DBSCAN clustering time: {end_time - start_time:.3f} seconds")
@@ -41,7 +41,7 @@ plt.savefig('umap_dbscan.png', dpi=300)
 dft2 = dft.drop(columns=['Unnamed: 0'])
 dft2['cluster'] = scan.labels_
 
-p = umap.plot.interactive(reducer2, labels=scan.labels_, hover_data=dft2, point_size=4, width=1800, height=900)
+p = umap.plot.interactive(reducer2, labels=scan.labels_, hover_data=dft2, point_size=4, width=800, height=800)
 umap.plot.show(p)
 
 # Print information about the clusters
@@ -52,6 +52,15 @@ clusters, counts = np.unique(scan.labels_, return_counts=True)
 for cluster, count in sorted(zip(clusters, counts), key=lambda x: x[1], reverse=True):
     if cluster != -1:  # Exclude noise points
         print(f"Cluster {cluster}: {count} points")
+
+# For each cluster (again sorted by number of entries) print 3 random samples of the fulltext
+for cluster, count in sorted(zip(clusters, counts), key=lambda x: x[1], reverse=True):
+    if cluster != -1:  # Exclude noise points
+        print(f"Cluster {cluster}: {count} points")
+        samples = dff[dft2['cluster'] == cluster].sample(n=3, random_state=42)
+        for i, row in samples.iterrows():
+            print(f"Sample {i}: {row['summary'][:200]}...")
+        print()
 
 
 def main():
