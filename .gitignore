@@ -6,3 +6,7 @@ PKG-INFO
 dependency_links.txt
 top_level.txt
 uv.lock
+*.png
+*.html
+*.csv
+*.pkl

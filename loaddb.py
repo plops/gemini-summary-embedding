@@ -46,6 +46,7 @@ for row in tab.rows:
 dff = pd.DataFrame(res_fulltext)
 dff.to_csv('fulltext.csv', index=False)
 dft = pd.DataFrame(res_text)
+dft.to_csv('parts.csv', index=True)
 a = np.array(res)
 
 # if reducer.pkl exists, load it
@@ -61,7 +62,7 @@ except FileNotFoundError:
     pass
 
 if reducer is None:
-    reducer = umap.UMAP(n_neighbors=10, min_dist=.1)
+    reducer = umap.UMAP(n_neighbors=4, min_dist=.1)
     print('Will compute UMAP embedding')
     reducer.fit(a)
 

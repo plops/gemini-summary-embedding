@@ -29,6 +29,11 @@ plt.scatter(embedding[:, 0], embedding[:, 1], c=scan.labels_, cmap='Spectral', s
 plt.gca().set_aspect('equal', 'datalim')
 plt.savefig('cluster.png')
 
+dft= pd.read_csv('parts.csv')
+
+p = umap.plot.interactive(reducer, labels=scan.labels_, hover_data=dft, point_size=4, width=1800, height=900)
+umap.plot.show(p)
+
 # >>> scan.labels_
 # array([ 0,  1,  1, ..., -1,  2, 11], shape=(4118,))
 # >>> scan.core_sample_indices_
@@ -62,3 +67,6 @@ df = pd.read_csv('fulltext.csv')
 # 3983  **Abstract:**\n\nThis video explains the key m...
 # 4023  **Abstract:**\n\nThis transcript consists of a...
 # 4116  **Abstract:**\n\nThis video by Gary's Economic...
+
+
+
