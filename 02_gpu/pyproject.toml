@@ -8,4 +8,7 @@ dependencies = [
     "ruff>=0.12.5",
     "cuml-cu12",
     "cudf-cu12",
+    "pandas",
+    "umap-learn[plot]",
+    "matplotlib",
 ]
