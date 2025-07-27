@@ -11,3 +11,4 @@ uv.lock
 *.csv
 *.pkl
 *.pyc
+*.npy

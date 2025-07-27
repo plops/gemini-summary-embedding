@@ -1,6 +1,21 @@
 import cudf
+from cuml import UMAP
 from cuml.cluster import DBSCAN
+import numpy as np
 # export CUDA_PATH=/opt/cuda/
+
+
+# load a from file
+a = np.load('../01_start/embeddings.npy')
+reducer = UMAP(n_neighbors=4, min_dist=.1)
+print('Will compute UMAP embedding')
+# measure time for fitting
+import time
+start_time = time.time()
+reducer.fit(a)
+end_time = time.time()
+print(f"UMAP fitting time: {end_time - start_time:.3f} seconds")
+
 
 # Create and populate a GPU DataFrame
 gdf_float = cudf.DataFrame()
