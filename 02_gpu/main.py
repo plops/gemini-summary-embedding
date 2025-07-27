@@ -7,7 +7,7 @@ import numpy as np
 
 # load a from file
 a = np.load('../01_start/embeddings.npy')
-reducer = UMAP(n_neighbors=4, min_dist=.1)
+reducer = UMAP(n_neighbors=4, min_dist=.1, n_components=3)
 print('Will compute UMAP embedding')
 # measure time for fitting
 import time
@@ -16,19 +16,13 @@ reducer.fit(a)
 end_time = time.time()
 print(f"UMAP fitting time: {end_time - start_time:.3f} seconds")
 
-
-# Create and populate a GPU DataFrame
-gdf_float = cudf.DataFrame()
-gdf_float['0'] = [1.0, 2.0, 5.0]
-gdf_float['1'] = [4.0, 2.0, 1.0]
-gdf_float['2'] = [4.0, 2.0, 1.0]
-
 # Setup and fit clusters
-dbscan_float = DBSCAN(eps=1.0, min_samples=1)
-dbscan_float.fit(gdf_float)
-
-print(dbscan_float.labels_)
-
+start_time = time.time()
+print('Will compute DBSCAN clustering')
+scan = DBSCAN(eps=1.0, min_samples=1)
+scan.fit(reducer.embedding_)
+end_time = time.time()
+print(f"DBSCAN clustering time: {end_time - start_time:.3f} seconds")
 
 def main():
     print("Hello from 02-gpu!")
