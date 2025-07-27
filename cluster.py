@@ -31,7 +31,7 @@ plt.savefig('cluster.png')
 
 dft= pd.read_csv('parts.csv')
 
-p = umap.plot.interactive(reducer, labels=scan.labels_, hover_data=dft, point_size=4, width=1800, height=900)
+p = umap.plot.interactive(reducer, labels=scan.labels_, hover_data=dft.drop(columns=['Unnamed: 0']), point_size=4, width=1800, height=900)
 umap.plot.show(p)
 
 # >>> scan.labels_
