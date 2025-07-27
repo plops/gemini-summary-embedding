@@ -67,23 +67,75 @@ for cluster, count in sorted(zip(clusters, counts), key=lambda x: x[1], reverse=
         print(f"Cluster {cluster}: {count} points")
 
 # For each cluster (again sorted by number of entries) print 3 random samples of the fulltext
+res = []
 for cluster, count in sorted(zip(clusters, counts), key=lambda x: x[1], reverse=True):
     if cluster != -1:  # Exclude noise points
         print(f"Cluster {cluster}: {count} points")
         samples = dff[dft2['cluster'] == cluster].sample(n=3, random_state=42)
         for i, row in samples.iterrows():
+            res.append({'cluster': cluster, 'summary': row['summary']})
             print(f"Sample {i}: {row['summary'][:200]}...")
         print()
 
-class Movie(pydantic.BaseModel):
+df = pd.DataFrame(res)
+# >>> df
+#      cluster                                            summary
+# 0          5  **Abstract:**\n\nThis video explores the persi...
+# 1          5  **Abstract:**\n\nThis video critically examine...
+# 2          5  **Abstract:**\n\nThis video features Sergey, a...
+# 3         14  **Abstract:**\n\nThis video delves into the pr...
+# 4         14  **Key Points from the Discussion on the Gaza C...
+# ..       ...                                                ...
+# 508      168  **Abstract:**\n\nThis video compiles heartfelt...
+# 509      168  **Abstract:**\n\nThis report highlights the pe...
+# 510      170  **Abstract:**\n\nThis lecture, Part 2 of a two...
+# 511      170  **Abstract:**\n\nThis lecture, the second part...
+# 512      170  **Abstract:**\n\nThis lecture, Part 2 of a two...
+
+# Add cluster to the DataFrame index
+df.set_index('cluster', inplace=True)
+
+# Iterate over the DataFrame and construct a prompt for each cluster according to this pattern:
+# "Cluster 5: [summary1] [summary2] [summary3]"
+examples = []
+for cluster, group in df.groupby(df.index):
+    summaries = " ".join(group['summary'].tolist())
+    examples.append(f"Cluster {cluster}: {summaries}")
+
+
+prompt0 = "I have a embedding visualization of Youtube video summaries. The embeddings are displayed as a 2D map where every video is one point. Clusters of points were identified using DBSCAN. You will see three examples of summaries that were randomly taken from a cluster. Generate a title for each cluster that can be shown in the diagram."
+prompts = []
+
+# We will call the Gemini API multiple times. Each time with a different prompt from `prompts`.
+# Construct each prompt by starting with `prompt0` and adding data from prompts[]. Stop adding to a prompt when it
+# contains more than 20000 words
+
+def words (prompt):
+    return len(prompt.split())
+
+prompt = prompt0 + "\n\n"
+
+while words(prompt) < 20000 and examples:
+    example = examples.pop(0)
+    if words(prompt + example) < 20000:
+        prompt += example + "\n\n"
+    else:
+        prompts.append(prompt.strip())
+        prompt = prompt0 + "\n\n" + example + "\n\n"
+
+
+# Print the number of prompts we will send to the Gemini API
+print(f"Number of prompts to send to Gemini API: {len(prompts)}")
+
+class Cluster(pydantic.BaseModel):
     title: str
-    year: int
+    id: int
 
 response = client.models.generate_content(
     model="gemini-2.5-flash-lite",
-    contents="List a few popular movies from the 1990s, with their release years.",
+    contents=prompt,
     config={"response_mime_type": "application/json",
-            "response_schema": list[Movie],
+            "response_schema": list[Cluster],
             },
 )
 print(response.text)
