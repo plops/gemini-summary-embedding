@@ -155,14 +155,14 @@ class Cluster(pydantic.BaseModel):
     title: str
     id: int
 
-# response = client.models.generate_content(
-#     model="gemini-2.5-flash-lite",
-#     contents=prompt,
-#     config={"response_mime_type": "application/json",
-#             "response_schema": list[Cluster],
-#             },
-# )
-# print(response.text)
+response = client.models.generate_content(
+    model="gemini-2.5-flash-lite",
+    contents=prompt,
+    config={"response_mime_type": "application/json",
+            "response_schema": list[Cluster],
+            },
+)
+print(response.parsed)
 
 
 def main():
