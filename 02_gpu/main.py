@@ -1,4 +1,6 @@
-import cudf
+# export CUDA_PATH=/opt/cuda/
+#
+# import cudf
 from cuml import UMAP
 from cuml.cluster import DBSCAN
 import numpy as np
@@ -7,7 +9,18 @@ import umap.plot
 import pandas as pd
 from matplotlib import pyplot as plt
 
-# export CUDA_PATH=/opt/cuda/
+from google import genai
+from google.genai import types
+import pydantic
+
+try:
+    with open("../01_start/api_key.txt") as f:
+        api_key = f.read().strip()
+    client = genai.Client(api_key=api_key)
+except FileNotFoundError:
+    print("Error: api_key.txt not found. Please create this file with your Gemini API key.")
+    exit()
+
 
 
 # load a from file
@@ -61,6 +74,19 @@ for cluster, count in sorted(zip(clusters, counts), key=lambda x: x[1], reverse=
         for i, row in samples.iterrows():
             print(f"Sample {i}: {row['summary'][:200]}...")
         print()
+
+class Movie(pydantic.BaseModel):
+    title: str
+    year: int
+
+response = client.models.generate_content(
+    model="gemini-2.5-flash-lite",
+    contents="List a few popular movies from the 1990s, with their release years.",
+    config={"response_mime_type": "application/json",
+            "response_schema": list[Movie],
+            },
+)
+print(response.text)
 
 
 def main():
