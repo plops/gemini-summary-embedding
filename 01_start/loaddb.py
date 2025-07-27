@@ -48,6 +48,9 @@ dff.to_csv('fulltext.csv', index=False)
 dft = pd.DataFrame(res_text)
 dft.to_csv('parts.csv', index=True)
 a = np.array(res)
+# save a to file
+np.save('embeddings.npy', a)
+
 
 # if reducer.pkl exists, load it
 
