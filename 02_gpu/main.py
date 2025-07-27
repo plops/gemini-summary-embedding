@@ -170,12 +170,14 @@ try:
 except FileNotFoundError:
     pass
 
+prompts = [prompts[0]]
+
 if clusters is None:
     clusters = []
     for i, prompt in enumerate(prompts):
         print(f"Sending prompt {i+1}/{len(prompts)} to Gemini API")
         response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
+            model="gemini-2.5-flash",
             contents=prompt,
             config={"response_mime_type": "application/json",
                     "response_schema": list[Cluster],
@@ -186,6 +188,7 @@ if clusters is None:
         with open(cluster_fn, 'wb') as f:
             pickle.dump(clusters, f)
         print(f"Saved {len(clusters)} clusters to file")
+        time.sleep(3)
 
 
 
