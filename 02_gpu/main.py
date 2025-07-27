@@ -47,6 +47,11 @@ umap.plot.show(p)
 # Print information about the clusters
 print("Number of clusters found:", len(set(scan.labels_)) - (1 if -1 in scan.labels_ else 0))
 
+# Print clusters sorted by size
+clusters, counts = np.unique(scan.labels_, return_counts=True)
+for cluster, count in sorted(zip(clusters, counts), key=lambda x: x[1], reverse=True):
+    if cluster != -1:  # Exclude noise points
+        print(f"Cluster {cluster}: {count} points")
 
 
 def main():
