@@ -97,7 +97,7 @@ for cluster, count in sorted(zip(clusters, counts), key=lambda x: x[1], reverse=
         # print(f"Cluster {cluster}: {count} points")
         samples = dff[dft2['cluster'] == cluster].sample(n=3, random_state=42)
         for i, row in samples.iterrows():
-            res.append({'cluster': cluster, 'summary': row['summary']})
+            res.append({'example_id': i, 'cluster': cluster, 'summary': row['summary']})
             # print(f"Sample {i}: {row['summary'][:200]}...")
         # print()
 
@@ -120,11 +120,14 @@ df = pd.DataFrame(res)
 df.set_index('cluster', inplace=True)
 
 # Iterate over the DataFrame and construct a prompt for each cluster according to this pattern:
-# "Cluster 5: [summary1] [summary2] [summary3]"
+# "cluster=5, example_id=<example_id1> [summary1]\ncluster=5, example_id=<example_id2> [summary2] cluster=5, example_id=<example_id3> [summary3]"
 examples = []
-for cluster, group in df.groupby(df.index):
-    summaries = " ".join(group['summary'].tolist())
-    examples.append(f"Cluster {cluster}: {summaries}")
+for cluster, group in df.groupby(level=0):
+    example = f"cluster={cluster}, example_id={group['example_id'].iloc[0]} {group['summary'].iloc[0]}\n"
+    example += f"cluster={cluster}, example_id={group['example_id'].iloc[1]} {group['summary'].iloc[1]}\n"
+    example += f"cluster={cluster}, example_id={group['example_id'].iloc[2]} {group['summary'].iloc[2]}"
+    examples.append(example)
+
 
 
 prompt0 = "I have a embedding visualization of Youtube video summaries. The embeddings are displayed as a 2D map where every video is one point. Clusters of points were identified using DBSCAN. You will see three examples of summaries that were randomly taken from a cluster. Generate a title for each cluster that can be shown in the diagram. Make sure that the response contains only one title for each cluster that describes all three examples reasonably well."
