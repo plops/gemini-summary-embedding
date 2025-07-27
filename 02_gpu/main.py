@@ -155,14 +155,35 @@ class Cluster(pydantic.BaseModel):
     title: str
     id: int
 
-response = client.models.generate_content(
-    model="gemini-2.5-flash-lite",
-    contents=prompt,
-    config={"response_mime_type": "application/json",
-            "response_schema": list[Cluster],
-            },
-)
-print(response.parsed)
+# We will store the results in a list of Cluster objects as they come
+clusters = None
+cluster_fn = 'clusters.pkl'
+
+try:
+    with open(cluster_fn, 'rb') as f:
+        f.seek(0)
+        clusters = pickle.load(f)
+        print('Loaded existing clusters from file')
+except FileNotFoundError:
+    pass
+
+if clusters is None:
+    clusters = []
+    for i, prompt in enumerate(prompts):
+        print(f"Sending prompt {i+1}/{len(prompts)} to Gemini API")
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=prompt,
+            config={"response_mime_type": "application/json",
+                    "response_schema": list[Cluster],
+                    },
+        )
+        print(response.parsed)
+        clusters.extend(response.parsed)
+        with open(cluster_fn, 'wb') as f:
+            pickle.dump(clusters, f)
+        print(f"Saved {len(clusters)} clusters to file")
+
 
 
 def main():
