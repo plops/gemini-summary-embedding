@@ -127,7 +127,7 @@ for cluster, group in df.groupby(df.index):
     examples.append(f"Cluster {cluster}: {summaries}")
 
 
-prompt0 = "I have a embedding visualization of Youtube video summaries. The embeddings are displayed as a 2D map where every video is one point. Clusters of points were identified using DBSCAN. You will see three examples of summaries that were randomly taken from a cluster. Generate a title for each cluster that can be shown in the diagram."
+prompt0 = "I have a embedding visualization of Youtube video summaries. The embeddings are displayed as a 2D map where every video is one point. Clusters of points were identified using DBSCAN. You will see three examples of summaries that were randomly taken from a cluster. Generate a title for each cluster that can be shown in the diagram. Make sure that the response contains only one title for each cluster that describes all three examples reasonably well."
 prompts = []
 
 # We will call the Gemini API multiple times. Each time with a different prompt from `prompts`.
