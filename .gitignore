@@ -10,3 +10,4 @@ uv.lock
 *.html
 *.csv
 *.pkl
+*.pyc
