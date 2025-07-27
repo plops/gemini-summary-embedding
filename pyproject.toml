@@ -1,10 +1,22 @@
 [project]
 name = "embed"
 version = "0.1.0"
-description = "Load video summaries from sqlite file and compute embeddings"
+description = "Load video summaries from sqlite file and compute embeddings, visualize with UMAP and cluster with DBSCAN"
 readme = "README.md"
+requires-python = "==3.12.*" # for numba
 dependencies = [
     "sqlite-minutils",
     "google-genai",
-    "numpy>=2.3.1",
+    "numpy",
+    "pandas",
+    "seaborn",
+    "umap-learn[plot]",
+    "scikit-learn",
+    "matplotlib",
+    "numba>=0.59.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
 ]

@@ -22,6 +22,22 @@ https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies
 
 a TOML comment at the top of the source file declares its Python dependencies.
 
+Numba requires python 3.12, download like so: `uv python install 3.12`.
+`uv sync` downloads all dependencies
+
+Run individual scripts:
+```
+uv run embed.py
+uv run cluster.py
+uv run loaddb.py
+```
+
+Run tests:
+```
+uv run pytest
+```
+
+
 Use `uv` to install them like by running like this:
 ```
 uv run embed.py
