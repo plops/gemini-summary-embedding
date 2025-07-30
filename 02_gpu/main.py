@@ -68,7 +68,9 @@ if reducers is None:
         reducers = [reducer2, reducer3, scan]
         pickle.dump(reducers, f) # 98MB
 
-
+# Create a different 2D map for visualization (uses same 4d cluster and cluster names as in previous runs:
+reducer2 = UMAP(n_neighbors=70, min_dist=.13, n_components=2)
+reducer2.fit(a)
 
 embedding = reducer2.embedding_
 plt.scatter(embedding[:,0], embedding[:,1], c=scan.labels_, cmap='Spectral', s=5)
@@ -79,8 +81,7 @@ plt.savefig('umap_dbscan.png', dpi=300)
 dft2 = dft.drop(columns=['Unnamed: 0'])
 dft2['cluster'] = scan.labels_
 
-p = umap.plot.interactive(reducer2, labels=scan.labels_, hover_data=dft2, point_size=4, width=800, height=800)
-umap.plot.show(p)
+
 
 # Print information about the clusters
 print("Number of clusters found:", len(set(scan.labels_)) - (1 if -1 in scan.labels_ else 0))
@@ -203,7 +204,7 @@ examples = []
 for cluster, group in df.groupby(level=0):
     # Get the first three examples from the cluster
     example_texts = []
-    for i in range(3):
+    for i in range(9):
         if i < len(group):
             example = group.iloc[i]
             summary = extract_summary_block(example['summary'])
@@ -219,7 +220,7 @@ for cluster, group in df.groupby(level=0):
 
 examples_orig = examples.copy() # make a copy of the original examples for debugging, we consume example list in the loop below
 
-prompt0 = "I have a embedding visualization of Youtube video summaries. The embeddings are displayed as a 2D map where every video is one point. Clusters of points were identified using DBSCAN. You will see three examples of summaries that were randomly taken from a cluster. Generate a title for each cluster that can be shown in the diagram. Make sure that the response contains only one title for each cluster that describes all three examples reasonably well."
+prompt0 = "I have a embedding visualization of Youtube video summaries. The embeddings are displayed as a 2D map where every video is one point. Clusters of points were identified using DBSCAN. You will see multiple examples of summaries that were randomly taken from a cluster. Generate a title for each cluster that can be shown in the diagram. Make sure that the response contains only one title for each cluster that describes all three examples reasonably well."
 prompts = []
 
 # We will call the Gemini API multiple times. Each time with a different prompt from `prompts`.
@@ -279,7 +280,55 @@ if clusters is None:
             pickle.dump(clusters, f)
         print(f"Saved {len(clusters)} clusters to file")
 
+# >>> clusters
+# [Cluster(title='PyTorch Performance & Novel ML Techniques', id=0), Cluster(title='Socio-Political Analysis of German Elections', id=2), Cluster(title='Innovations and Strategic Shifts in VR Hardware', id=4), Cluster(title='Advanced Real-time 3D Rendering Techniques', id=6), Cluster(title='Game Engine Graphics Refactoring & NVRHI Integration', id=7), Cluster(title='Virology Updates: Vaccines, Infectious Diseases & Science Debates', id=8), Cluster(title='Exploring Modern Astronomy & Cosmic Phenomena', id=10), Cluster(title='Foundational & Challenging Concepts in Physics', id=11), Cluster(title='Yuval Noah Harari on Global Challenges', id=13), Cluster(title='Israeli Perspective on Iran Conflict', id=14),
 
+
+
+# Add corresponding cluster title to each row in dft2 that has the corresponding cluster id
+for i, row in dft2.iterrows():
+    cluster_id = row['cluster']
+    if cluster_id != -1:  # Exclude noise points
+        title = next((c.title for c in clusters if c.id == cluster_id), None)
+        if title:
+            dft2.at[i, 'title'] = title
+        else:
+            dft2.at[i, 'title'] = 'Unknown Cluster'
+
+
+p = umap.plot.interactive(reducer2, labels=scan.labels_,  color_key_cmap='Paired', hover_data=dft2, point_size=4,  width=1920, height=1080)
+
+# Add a title to the plot
+p.title.text = "Interactive UMAP projection of Youtube video summaries with DBSCAN clustering"
+p.title.align = "center"
+p.title.text_color = "darkblue"
+p.title.text_font_size = "18px"
+
+# p.grid.visible = True
+# p.axis.visible = True
+
+
+# Set the sizing_mode of the plot
+p.sizing_mode = "stretch_both"
+# >>> p
+# figure(id='p1006', ...)
+# >>> type(p)
+# <class 'bokeh.plotting._figure.figure'>
+
+# Note that cluster coordinates are embedding[:,0], embedding[:,1]
+# and the corresponding labels for the colors are scan.labels_.
+# Compute the cluster centroids and draw the title for each cluster into the plot
+centroids = {}
+for cluster in np.unique(scan.labels_):
+    if cluster != -1:  # Exclude noise points
+        indices = np.where(scan.labels_ == cluster)[0]
+        centroid = np.mean(embedding[indices], axis=0)
+        centroids[cluster] = centroid
+        title = next((c.title for c in clusters if c.id == cluster), 'Unknown Cluster')
+        p.text(x=centroid[0], y=centroid[1], text=[title], text_font_size='8pt', text_color='black')
+
+import bokeh.plotting
+bokeh.plotting.output_file(filename="main.html", title="UMAP DBSCAN Clustering of Youtube Video Summaries", mode="inline")
 
 def main():
     print("Hello from 02-gpu!")
