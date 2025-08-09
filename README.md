@@ -1,11 +1,12 @@
 # Contents
 
-|-----------+-------------------------------------------------------------------------------------------------------------------------------------|
-| file      | purpose                                                                                                                             |
-|-----------+-------------------------------------------------------------------------------------------------------------------------------------|
-| embed.py  | call google gemini to compute embeddings for each video summary (this free google service is rate limited to 1000 requests per day) |
-| loaddb.py | load the sqlite3 database with embeddings and use umap to visualize                                                                 |
-
+|---------------+----------------------------------------------+---------------------------+------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------|
+| file          | in                                           | cache                     | out                                                        | purpose                                                                                                                           |
+|---------------+----------------------------------------------+---------------------------+------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------|
+| 01/embed.py   | sqlite                                       |                           | sqlite                                                     | call google gemini to compute embeddings for each video summary (cost .15USD/1Mtoken, free tier limited to 1000 requests per day) |
+| 01/cluster.py | sqlite, reducer.pkl, parts.csv, fulltext.csv |                           |                                                            | runs DBSCAN to find clusters                                                                                                      |
+| 01/loaddb.py  | sqlite                                       | reducer.pkl               | reducer.pkl, parts.csv, fulltext.csv, embeddings.npy, html | load the sqlite3 database with embeddings and use umap to visualize                                                               |
+| 02/main.py    | embeddings.npy, parts.csv, fulltext.csv      | reducer.pkl, clusters.pkl | main.html                                                  | visualize 2D UMAP embeddings, with cluster colors and names from DBSCAN clustering on 4D UMAP                                     |
 
 # Dependencies
 
