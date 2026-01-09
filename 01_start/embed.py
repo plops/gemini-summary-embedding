@@ -4,7 +4,7 @@
 # dependencies = [
 #   "sqlite-minutils",
 #   "google-genai",
-#   "numpy",
+#   "numpy", "loguru"
 # ]
 # ///
 
@@ -256,7 +256,7 @@ for i in range(0, len(rows_to_embed), BATCH_SIZE):
 
     # Be a good citizen and respect API rate limits. https://ai.google.dev/gemini-api/docs/rate-limits#free-tier
     # Gemini Embedding 	100 requests per minute, 30,000 tokens per minute, 1,000 requests per day
-    time.sleep(30)
+    time.sleep(60)
 
 logger.info("Embedding process finished.")
 
