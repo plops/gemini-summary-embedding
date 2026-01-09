@@ -14,6 +14,7 @@ dependencies = [
     "scikit-learn",
     "matplotlib",
     "numba>=0.59.0",
+    "jax>=0.7.2",
 ]
 
 [project.optional-dependencies]

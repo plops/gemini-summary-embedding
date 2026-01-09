@@ -52,21 +52,11 @@ Numba requires python 3.12, download like so: `uv python install 3.12`.
 
 Run individual scripts:
 ```
-uv run embed.py
-uv run cluster.py
+uv run embed.py # only needed when embeddings are not already present
 uv run loaddb.py
+uv run cluster.py
 ```
 
-Run tests:
-```
-uv run pytest
-```
-
-
-Use `uv` to install them like by running like this:
-```
-uv run embed.py
-```
 
 Format python files
 ```

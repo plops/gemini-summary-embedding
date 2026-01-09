@@ -10,7 +10,7 @@ sns.set(style="white", context="notebook", rc={"figure.figsize": (14, 10)})
 
 debug = False
 
-db = Database("summaries_20250720_embed.db")
+db = Database("summaries_20260109.db")
 tab = db.table("items")
 # <Table items (identifier, model, transcript, host, summary, summary_done, summary_input_tokens, summary_output_tokens, summary_timestamp_start, summary_timestamp_end, timestamps, timestamps_done, timestamps_input_tokens, timestamps_output_tokens, timestamps_timestamp_start, timestamps_timestamp_end, timestamped_summary_in_youtube_format, cost, original_source_link, include_comments, include_timestamps, include_glossary, output_language, embedding)>
 
