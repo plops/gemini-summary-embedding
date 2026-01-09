@@ -4,7 +4,7 @@
 # dependencies = [
 #   "sqlite-minutils",
 #   "google-genai",
-#   "numpy",
+#   "numpy", "loguru"
 # ]
 # ///
 
