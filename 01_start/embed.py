@@ -14,12 +14,35 @@ from google.genai import types
 import numpy as np  # uv add numpy
 import time
 import sqlite_minutils  # We use this for the type hint, but sqlite-minutils provides the objects
+import loguru
+import argparse
 
+logger = loguru.logger
 
+# log to console and to file
+logger.add("embed_summaries.log", rotation="10 MB")
+
+# Parse command line arguments
+parser = argparse.ArgumentParser(description="Embed summaries using Gemini API")
+parser.add_argument(
+    "--batch-size",
+    type=int,
+    default=100,
+    help="Number of items to process per batch (default: 100)"
+)
+parser.add_argument(
+    "--db-file",
+    type=str,
+    default="/home/kiel/stage/cl-py-generator/example/143_helium_gemini/source04/tsum/data/summaries.db",
+    help="Path to the SQLite database file"
+)
+args = parser.parse_args()
+
+logger.info("Starting embedding script...")
 # --- 1. SETUP ---
 # Load the database and GenAI client
-db_file = "summaries_20260109.db"
-db_file = "/home/kiel/stage/cl-py-generator/example/143_helium_gemini/source04/tsum/data/summaries.db"
+db_file = args.db_file
+logger.info(f"Using database file: {db_file}")
 db = Database(db_file)
 items: sqlite_minutils.db.Table = Table(db, "items")
 
@@ -28,9 +51,10 @@ try:
     with open("api_key.txt") as f:
         api_key = f.read().strip()
     client = genai.Client(api_key=api_key)
+    logger.info("Successfully loaded API key")
 except FileNotFoundError:
-    print(
-        "Error: api_key.txt not found. Please create this file with your Gemini API key."
+    logger.error(
+        "api_key.txt not found. Please create this file with your Gemini API key."
     )
     exit()
 
@@ -117,20 +141,20 @@ except FileNotFoundError:
 # Add an 'embedding' column of type BLOB if it doesn't already exist.
 # This is the most efficient way to store vector data.
 if "embedding" not in items.columns_dict:
-    print("Adding 'embedding' column (BLOB) to the 'items' table...")
+    logger.info("Adding 'embedding' column (BLOB) to the 'items' table...")
     items.add_column("embedding", "BLOB")
-    print("Column added.")
+    logger.info("Column added.")
 
 embedding_model="models/gemini-embedding-001"
 if "embedding_model" not in items.columns_dict:
-    print("Adding 'embedding_model' column (string) to the 'items' table...")
+    logger.info("Adding 'embedding_model' column (string) to the 'items' table...")
     items.add_column("embedding_model", str)
-    print("Column added.")
+    logger.info("Column added.")
 
 # --- 3. COLLECT DATA FOR EMBEDDING ---
 
 # Print number of rows in the table
-print(f"Total items in the database: {len(list(items.rows))}")
+logger.info(f"Total items in the database: {len(list(items.rows))}")
 
 
 # It's more efficient to only embed summaries for rows that don't have one yet.
@@ -142,10 +166,10 @@ for row in items.rows_where(
     rows_to_embed.append((row["identifier"], row["summary"]))
 
 if not rows_to_embed:
-    print("No new summaries to embed. All items are up to date.")
+    logger.info("No new summaries to embed. All items are up to date.")
     exit()
 
-print(f"Found {len(rows_to_embed)} summaries to embed.")
+logger.info(f"Found {len(rows_to_embed)} summaries to embed.")
 
 # Found 2788 summaries to embed.
 
@@ -153,14 +177,15 @@ print(f"Found {len(rows_to_embed)} summaries to embed.")
 # --- 4. BATCH EMBEDDING AND DATABASE UPDATE ---
 # The Gemini API has a limit of 100 items per request.
 # We must process the data in batches.
-BATCH_SIZE = 100
+BATCH_SIZE = args.batch_size
+logger.info(f"Using batch size: {BATCH_SIZE}")
 
 for i in range(0, len(rows_to_embed), BATCH_SIZE):
     batch_rows = rows_to_embed[i : i + BATCH_SIZE]
     ids_batch, summaries_batch = zip(*batch_rows)
 
-    print(
-        f"\nProcessing batch {i // BATCH_SIZE + 1} of {((len(rows_to_embed) - 1) // BATCH_SIZE) + 1} ({len(summaries_batch)} items)..."
+    logger.info(
+        f"Processing batch {i // BATCH_SIZE + 1} of {((len(rows_to_embed) - 1) // BATCH_SIZE) + 1} ({len(summaries_batch)} items)..."
     )
 
     try:
@@ -176,7 +201,7 @@ for i in range(0, len(rows_to_embed), BATCH_SIZE):
 
         # The API returns embeddings in the same order as the input content.
         # Now, update the database rows.
-        print("Storing embeddings in the database...")
+        logger.info("Storing embeddings in the database...")
 
         # >>> result
         # EmbedContentResponse(
@@ -223,22 +248,22 @@ for i in range(0, len(rows_to_embed), BATCH_SIZE):
             # The first argument is the primary key, the second is a dict of columns to update.
             items.update(identifier, {"embedding": vector_blob, "embedding_model": embedding_model})
 
-        print(f"Batch {i // BATCH_SIZE + 1} completed successfully.")
+        logger.success(f"Batch {i // BATCH_SIZE + 1} completed successfully.")
 
     except Exception as e:
-        print(f"An error occurred during batch {i // BATCH_SIZE + 1}: {e}")
-        print("Skipping this batch and continuing...")
+        logger.error(f"An error occurred during batch {i // BATCH_SIZE + 1}: {e}")
+        logger.warning("Skipping this batch and continuing...")
 
     # Be a good citizen and respect API rate limits. https://ai.google.dev/gemini-api/docs/rate-limits#free-tier
     # Gemini Embedding 	100 requests per minute, 30,000 tokens per minute, 1,000 requests per day
     time.sleep(30)
 
-print("\nEmbedding process finished.")
+logger.info("Embedding process finished.")
 
 
 # --- 5. VERIFICATION (Optional) ---
 # Let's read one back to prove it worked
-print("\n--- Verification ---")
+logger.info("--- Verification ---")
 try:
     # Use next() to get the first item from the generator without loading all rows.
     first_item_with_embedding = next(items.rows_where("embedding IS NOT NULL"))
@@ -248,12 +273,12 @@ try:
     # Convert the blob back to a numpy array
     retrieved_vector = np.frombuffer(embedding_blob, dtype=np.float32)
 
-    print(f"Successfully retrieved embedding for item with identifier: {pk}")
-    print(
+    logger.success(f"Successfully retrieved embedding for item with identifier: {pk}")
+    logger.info(
         f"Data type of stored value in DB: {type(embedding_blob)}"
     )  # Should be <class 'bytes'>
-    print(f"Shape of decoded vector: {retrieved_vector.shape}")
-    print(f"First 5 values of vector: {retrieved_vector[:5]}")
+    logger.info(f"Shape of decoded vector: {retrieved_vector.shape}")
+    logger.info(f"First 5 values of vector: {retrieved_vector[:5]}")
 
 except StopIteration:
-    print("Could not find any items with embeddings to verify.")
+    logger.warning("Could not find any items with embeddings to verify.")
