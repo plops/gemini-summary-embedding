@@ -16,15 +16,15 @@ debug = False
 
 db = Database("summaries_20260109.db")
 tab = db.table("items")
-# <Table items (identifier, model, transcript, host, summary, summary_done, summary_input_tokens, summary_output_tokens, summary_timestamp_start, summary_timestamp_end, timestamps, timestamps_done, timestamps_input_tokens, timestamps_output_tokens, timestamps_timestamp_start, timestamps_timestamp_end, timestamped_summary_in_youtube_format, cost, original_source_link, include_comments, include_timestamps, include_glossary, output_language, embedding)>
+# <Table items (identifier, model, transcript, host, summary, summary_done, summary_input_tokens, summary_output_tokens, summary_timestamp_start, summary_timestamp_end, timestamps, timestamps_done, timestamps_input_tokens, timestamps_output_tokens, timestamps_timestamp_start, timestamps_timestamp_end, timestamped_summary_in_youtube_format, cost, original_source_link, include_comments, include_timestamps, include_glossary, output_language, embedding, full_embedding)>
 
 # print the number of rows in tab using logger
 logger.info(f"Number of rows in tab: {tab.count}")
 
-res = []
-res_text = []
-res_id = []
-res_fulltext = []
+res = [] # list of embeddings in numpy array format (float32)
+res_text = [] # list of dicts with 'summary' key (with first two lines of the AI summary only)
+res_id = [] # list of identifiers
+res_fulltext = [] # list of dicts with full 'summary' key (with the full AI summary)
 for row in tab.rows:
     emb_bytes = row["embedding"]
     if emb_bytes is not None:
@@ -63,13 +63,13 @@ for row in tab.rows:
         )
         res_fulltext.append({"summary": row["summary"]})
         res_id.append(row["identifier"])
-dff = pd.DataFrame(res_fulltext)
+dff = pd.DataFrame(res_fulltext) # full summaries
 dff.to_csv("fulltext.csv", index=False)
-dft = pd.DataFrame(res_text)
+dft = pd.DataFrame(res_text) # truncated summaries
 dft.to_csv("parts.csv", index=True)
 a = np.array(res)
 # save a to file
-np.save("embeddings.npy", a)
+np.save("embeddings.npy", a) # shape (num_entries, embedding_dim)
 
 # print the number of rows in dft (rows with embeddings)
 logger.info(f"Number of rows in dft (entries with embeddings): {len(dft)}")
