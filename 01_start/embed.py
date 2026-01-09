@@ -119,6 +119,12 @@ if "embedding" not in items.columns_dict:
     items.add_column("embedding", "BLOB")
     print("Column added.")
 
+embedding_model="models/gemini-embedding-001"
+if "embedding_model" not in items.columns_dict:
+    print("Adding 'embedding_model' column (string) to the 'items' table...")
+    items.add_column("embedding_model", "string")
+    print("Column added.")
+
 # --- 3. COLLECT DATA FOR EMBEDDING ---
 
 # Print number of rows in the table
@@ -158,8 +164,9 @@ for i in range(0, len(rows_to_embed), BATCH_SIZE):
     try:
         # Get embeddings from the Gemini API
         # Using the recommended model and specifying the task_type for better results.
+        embedding_model="gemini-embedding-001"
         result = client.models.embed_content(
-            model="gemini-embedding-001",
+            model=embedding_model,
             contents=list(summaries_batch),
             # Task type is crucial for optimizing embeddings for your specific use case.
             config=types.EmbedContentConfig(task_type="CLUSTERING"),
@@ -212,7 +219,7 @@ for i in range(0, len(rows_to_embed), BATCH_SIZE):
 
             # Use the .update() method from sqlite-minutils.
             # The first argument is the primary key, the second is a dict of columns to update.
-            items.update(identifier, {"embedding": vector_blob})
+            items.update(identifier, {"embedding": vector_blob, "embedding_model": embedding_model})
 
         print(f"Batch {i // BATCH_SIZE + 1} completed successfully.")
 
