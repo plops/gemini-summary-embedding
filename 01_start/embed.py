@@ -18,7 +18,9 @@ import sqlite_minutils  # We use this for the type hint, but sqlite-minutils pro
 
 # --- 1. SETUP ---
 # Load the database and GenAI client
-db = Database("summaries_20260109.db")
+db_file = "summaries_20260109.db"
+db_file = "/home/kiel/stage/cl-py-generator/example/143_helium_gemini/source04/tsum/data/summaries.db"
+db = Database(db_file)
 items: sqlite_minutils.db.Table = Table(db, "items")
 
 # Read the Gemini API key from disk
