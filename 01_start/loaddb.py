@@ -5,6 +5,10 @@ import pandas as pd
 import seaborn as sns
 import umap.plot
 from sqlite_minutils import *
+import loguru
+
+# initialize loguru logger
+logger = loguru.logger
 
 sns.set(style="white", context="notebook", rc={"figure.figsize": (14, 10)})
 
@@ -13,6 +17,9 @@ debug = False
 db = Database("summaries_20260109.db")
 tab = db.table("items")
 # <Table items (identifier, model, transcript, host, summary, summary_done, summary_input_tokens, summary_output_tokens, summary_timestamp_start, summary_timestamp_end, timestamps, timestamps_done, timestamps_input_tokens, timestamps_output_tokens, timestamps_timestamp_start, timestamps_timestamp_end, timestamped_summary_in_youtube_format, cost, original_source_link, include_comments, include_timestamps, include_glossary, output_language, embedding)>
+
+# print the number of rows in tab using logger
+logger.info(f"Number of rows in tab: {tab.count}")
 
 res = []
 res_text = []
@@ -64,6 +71,12 @@ a = np.array(res)
 # save a to file
 np.save("embeddings.npy", a)
 
+# print the number of rows in dft (rows with embeddings)
+logger.info(f"Number of rows in dft (entries with embeddings): {len(dft)}")
+
+# print the shape of a using logger
+logger.info(f"Shape of embeddings array: {a.shape}")
+
 
 # if reducer.pkl exists, load it
 
@@ -73,16 +86,18 @@ try:
     with open(reducer_fn, "rb") as f:
         f.seek(0)
         reducer = pickle.load(f)
-        print("Loaded existing reducer from file")
+        logger.info("Loaded existing reducer from file")
 except FileNotFoundError:
+    logger.info("No existing reducer found, will compute a new one")
     pass
 
 if reducer is None:
     reducer = umap.UMAP(n_neighbors=4, min_dist=0.1)
-    print("Will compute UMAP embedding")
+    logger.info("Fitting UMAP reducer to data")
     reducer.fit(a)
 
     with open(reducer_fn, "wb") as f:
+        logger.info("Saving reducer to file")
         pickle.dump(reducer, f)  # 188MB
 
 # embedding = reducer.embedding_
@@ -112,7 +127,7 @@ if reducer is None:
 # plt.savefig('youtube_neighborhood.png')
 
 # print the number of entries in dft
-print(f"Number of entries in dft: {len(dft)}")
+logger.info("Number of entries in dft: {}", len(dft))
 
 p = umap.plot.interactive(reducer, hover_data=dft, point_size=4, width=1800, height=900)
 umap.plot.show(p)
