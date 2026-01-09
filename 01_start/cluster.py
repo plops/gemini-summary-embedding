@@ -7,31 +7,38 @@ import umap.plot
 from sklearn.cluster import DBSCAN
 import matplotlib.pyplot as plt
 
-sns.set(style='white', context='notebook', rc={'figure.figsize': (14, 10)})
+sns.set(style="white", context="notebook", rc={"figure.figsize": (14, 10)})
 
 reducer = None
-reducer_fn = 'reducer.pkl'
+reducer_fn = "reducer.pkl"
 try:
-    with open(reducer_fn, 'rb') as f:
+    with open(reducer_fn, "rb") as f:
         f.seek(0)
         reducer = pickle.load(f)
-        print('Loaded existing reducer from file')
+        print("Loaded existing reducer from file")
 except FileNotFoundError:
     exit(-1)
 
 # 2019 Aurelien Geron p.256
-scan = DBSCAN(eps=.15, min_samples=5)
+scan = DBSCAN(eps=0.15, min_samples=5)
 scan.fit(reducer.embedding_)
 
 
 embedding = reducer.embedding_
-plt.scatter(embedding[:, 0], embedding[:, 1], c=scan.labels_, cmap='Spectral', s=5)
-plt.gca().set_aspect('equal', 'datalim')
-plt.savefig('cluster.png')
+plt.scatter(embedding[:, 0], embedding[:, 1], c=scan.labels_, cmap="Spectral", s=5)
+plt.gca().set_aspect("equal", "datalim")
+plt.savefig("cluster.png")
 
-dft= pd.read_csv('parts.csv')
+dft = pd.read_csv("parts.csv")
 
-p = umap.plot.interactive(reducer, labels=scan.labels_, hover_data=dft.drop(columns=['Unnamed: 0']), point_size=4, width=1800, height=900)
+p = umap.plot.interactive(
+    reducer,
+    labels=scan.labels_,
+    hover_data=dft.drop(columns=["Unnamed: 0"]),
+    point_size=4,
+    width=1800,
+    height=900,
+)
 umap.plot.show(p)
 
 # >>> scan.labels_
@@ -47,7 +54,7 @@ umap.plot.show(p)
 #        [10.893396 , 10.08514  ],
 #        [ 6.2154083,  3.4041855]], shape=(3528, 2), dtype=float32)
 
-df = pd.read_csv('fulltext.csv')
+df = pd.read_csv("fulltext.csv")
 
 # scan.labels_
 # scan.core_sample_indices_
@@ -67,6 +74,3 @@ df = pd.read_csv('fulltext.csv')
 # 3983  **Abstract:**\n\nThis video explains the key m...
 # 4023  **Abstract:**\n\nThis transcript consists of a...
 # 4116  **Abstract:**\n\nThis video by Gary's Economic...
-
-
-
