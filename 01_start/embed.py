@@ -153,7 +153,7 @@ print(f"Found {len(rows_to_embed)} summaries to embed.")
 # --- 4. BATCH EMBEDDING AND DATABASE UPDATE ---
 # The Gemini API has a limit of 100 items per request.
 # We must process the data in batches.
-BATCH_SIZE = 8
+BATCH_SIZE = 100
 
 for i in range(0, len(rows_to_embed), BATCH_SIZE):
     batch_rows = rows_to_embed[i : i + BATCH_SIZE]
