@@ -124,7 +124,7 @@ if "embedding" not in items.columns_dict:
 embedding_model="models/gemini-embedding-001"
 if "embedding_model" not in items.columns_dict:
     print("Adding 'embedding_model' column (string) to the 'items' table...")
-    items.add_column("embedding_model", "STRING")
+    items.add_column("embedding_model", str)
     print("Column added.")
 
 # --- 3. COLLECT DATA FOR EMBEDDING ---
