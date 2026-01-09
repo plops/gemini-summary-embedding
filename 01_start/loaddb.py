@@ -111,5 +111,8 @@ if reducer is None:
 # umap.plot.diagnostic(reducer, diagnostic_type='neighborhood')
 # plt.savefig('youtube_neighborhood.png')
 
+# print the number of entries in dft
+print(f"Number of entries in dft: {len(dft)}")
+
 p = umap.plot.interactive(reducer, hover_data=dft, point_size=4, width=1800, height=900)
 umap.plot.show(p)
