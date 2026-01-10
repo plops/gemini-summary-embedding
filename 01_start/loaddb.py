@@ -111,7 +111,8 @@ dff = pd.DataFrame(res_fulltext) # full summaries
 dff.to_csv(args.fulltext_file, index=False)
 dft = pd.DataFrame(res_text) # truncated summaries
 dft.to_csv(args.parts_file, index=True)
-a = np.array(res)
+res1 = [r[:768-1] for r in res]
+a = np.array(res1)
 # save a to file
 np.save(args.embeddings_file, a) # shape (num_entries, embedding_dim)
 
