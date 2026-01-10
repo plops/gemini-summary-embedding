@@ -7,6 +7,7 @@ import seaborn as sns
 import umap.plot
 from sqlite_minutils import *
 import loguru
+from numpy.linalg import norm
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='Load embeddings from database and visualize with UMAP')
@@ -111,7 +112,9 @@ dff = pd.DataFrame(res_fulltext) # full summaries
 dff.to_csv(args.fulltext_file, index=False)
 dft = pd.DataFrame(res_text) # truncated summaries
 dft.to_csv(args.parts_file, index=True)
-res1 = [r[:768] for r in res]
+res1 = [np.array(r[:768])/ np.linalg.norm(np.array(r[:768])) for r in res]
+# normalization needed
+# https://ai.google.dev/gemini-api/docs/embeddings#python
 a = np.array(res1)
 # save a to file
 np.save(args.embeddings_file, a) # shape (num_entries, embedding_dim)

@@ -196,7 +196,7 @@ for i in range(0, len(rows_to_embed), BATCH_SIZE):
             model=embedding_model,
             contents=list(summaries_batch),
             # Task type is crucial for optimizing embeddings for your specific use case.
-            config=types.EmbedContentConfig(task_type="CLUSTERING"),
+            config=types.EmbedContentConfig(task_type="CLUSTERING", output_dimensionality=3072),
         )
 
         # The API returns embeddings in the same order as the input content.
@@ -242,7 +242,9 @@ for i in range(0, len(rows_to_embed), BATCH_SIZE):
         for identifier, embedding_obj in zip(ids_batch, result.embeddings):
             # Convert the list of floats from embedding_obj.values to a
             # numpy array of float32, then to raw bytes (BLOB)
-            vector_blob = np.array(embedding_obj.values, dtype=np.float32).tobytes()
+            vector_array = np.array(embedding_obj.values, dtype=np.float32)
+            logger.info("Embedding vector shape: {}".format(vector_array.shape))
+            vector_blob = vector_array.tobytes()
 
             # Use the .update() method from sqlite-minutils.
             # The first argument is the primary key, the second is a dict of columns to update.
