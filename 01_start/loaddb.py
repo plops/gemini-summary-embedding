@@ -12,7 +12,7 @@ import loguru
 parser = argparse.ArgumentParser(description='Load embeddings from database and visualize with UMAP')
 parser.add_argument('-d', '--db-file',
                     default='/home/kiel/stage/cl-py-generator/example/143_helium_gemini/source04/tsum/data/summaries.db',
-                    help='Database file to use (default: summaries.db in tsum/data)')
+                    help='Database file to use (default: summaries.db in the webservers tsum/data)')
 parser.add_argument('-e', '--embeddings-file',
                     default='embeddings.npy',
                     help='Output embeddings file (default: embeddings.npy)')
