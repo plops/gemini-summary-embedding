@@ -73,3 +73,8 @@ Execute `C-S-p Restart Ruff` in Vscode
 More information: https://github.com/astral-sh/ruff-vscode/blob/main/README.md
 
 I created pyproject.toml and executed `uv sync`
+
+
+# References:
+
+- https://github.com/poloclub/wizmap/blob/main/example/diffusiondb-images.ipynb This is a good visualization technique, perhaps applicable to my topic
