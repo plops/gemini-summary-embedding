@@ -19,24 +19,80 @@ import argparse
 
 logger = loguru.logger
 
-# log to console and to file
-logger.add("embed_summaries.log", rotation="10 MB")
-
 # Parse command line arguments
 parser = argparse.ArgumentParser(description="Embed summaries using Gemini API")
 parser.add_argument(
-    "--batch-size",
+    "-b", "--batch-size",
     type=int,
     default=100,
     help="Number of items to process per batch (default: 100)"
 )
 parser.add_argument(
-    "--db-file",
+    "-f", "--db-file",
     type=str,
     default="/home/kiel/stage/cl-py-generator/example/143_helium_gemini/source04/tsum/data/summaries.db",
     help="Path to the SQLite database file"
 )
+parser.add_argument(
+    "-a", "--api-key-file",
+    type=str,
+    default="api_key.txt",
+    help="Path to the API key file (default: api_key.txt)"
+)
+parser.add_argument(
+    "-e", "--embedding-model",
+    type=str,
+    default="gemini-embedding-001",
+    help="Embedding model to use (default: gemini-embedding-001)"
+)
+parser.add_argument(
+    "-o", "--output-dim",
+    type=int,
+    default=3072,
+    help="Output dimensionality for embeddings (default: 3072)"
+)
+parser.add_argument(
+    "-t", "--task-type",
+    type=str,
+    default="CLUSTERING",
+    help="Embedding task type (default: CLUSTERING)"
+)
+parser.add_argument(
+    "-s", "--sleep-seconds",
+    type=int,
+    default=60,
+    help="Seconds to pause between batches (default: 60)"
+)
+parser.add_argument(
+    "-m", "--max-rows",
+    type=int,
+    default=0,
+    help="Maximum rows to embed, 0 means all (default: 0)"
+)
+parser.add_argument(
+    "-l", "--log-file",
+    type=str,
+    default="embed_summaries.log",
+    help="Path to the log file (default: embed_summaries.log)"
+)
+parser.add_argument(
+    "-v", "--log-level",
+    type=str,
+    default="INFO",
+    choices=["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"],
+    help="Log verbosity level (default: INFO)"
+)
+parser.add_argument(
+    "-d", "--dry-run",
+    action="store_true",
+    help="Fetch embeddings but skip database writes"
+)
 args = parser.parse_args()
+
+# Configure logger with command line arguments
+logger.remove()  # Remove default handler
+logger.add(lambda msg: print(msg, end=""), level=args.log_level)  # Console output
+logger.add(args.log_file, rotation="10 MB", level=args.log_level)
 
 logger.info("Starting embedding script...")
 # --- 1. SETUP ---
@@ -48,13 +104,13 @@ items: sqlite_minutils.db.Table = Table(db, "items")
 
 # Read the Gemini API key from disk
 try:
-    with open("api_key.txt") as f:
+    with open(args.api_key_file) as f:
         api_key = f.read().strip()
     client = genai.Client(api_key=api_key)
     logger.info("Successfully loaded API key")
 except FileNotFoundError:
     logger.error(
-        "api_key.txt not found. Please create this file with your Gemini API key."
+        f"{args.api_key_file} not found. Please create this file with your Gemini API key."
     )
     exit()
 
@@ -140,16 +196,20 @@ except FileNotFoundError:
 # --- 2. PREPARE THE DATABASE ---
 # Add an 'embedding' column of type BLOB if it doesn't already exist.
 # This is the most efficient way to store vector data.
-if "embedding" not in items.columns_dict:
-    logger.info("Adding 'embedding' column (BLOB) to the 'items' table...")
-    items.add_column("embedding", "BLOB")
-    logger.info("Column added.")
+if not args.dry_run:
+    if "embedding" not in items.columns_dict:
+        logger.info("Adding 'embedding' column (BLOB) to the 'items' table...")
+        items.add_column("embedding", "BLOB")
+        logger.info("Column added.")
 
-embedding_model="models/gemini-embedding-001"
-if "embedding_model" not in items.columns_dict:
-    logger.info("Adding 'embedding_model' column (string) to the 'items' table...")
-    items.add_column("embedding_model", str)
-    logger.info("Column added.")
+    if "embedding_model" not in items.columns_dict:
+        logger.info("Adding 'embedding_model' column (string) to the 'items' table...")
+        items.add_column("embedding_model", str)
+        logger.info("Column added.")
+else:
+    logger.info("Dry-run mode: skipping database schema modifications")
+
+embedding_model = f"models/{args.embedding_model}"
 
 # --- 3. COLLECT DATA FOR EMBEDDING ---
 
@@ -168,6 +228,11 @@ for row in items.rows_where(
 if not rows_to_embed:
     logger.info("No new summaries to embed. All items are up to date.")
     exit()
+
+# Apply max-rows limit if specified
+if args.max_rows > 0 and len(rows_to_embed) > args.max_rows:
+    logger.info(f"Limiting to {args.max_rows} rows (out of {len(rows_to_embed)} available)")
+    rows_to_embed = rows_to_embed[:args.max_rows]
 
 logger.info(f"Found {len(rows_to_embed)} summaries to embed.")
 
@@ -191,17 +256,19 @@ for i in range(0, len(rows_to_embed), BATCH_SIZE):
     try:
         # Get embeddings from the Gemini API
         # Using the recommended model and specifying the task_type for better results.
-        embedding_model="gemini-embedding-001"
         result = client.models.embed_content(
             model=embedding_model,
             contents=list(summaries_batch),
             # Task type is crucial for optimizing embeddings for your specific use case.
-            config=types.EmbedContentConfig(task_type="CLUSTERING", output_dimensionality=3072),
+            config=types.EmbedContentConfig(task_type=args.task_type, output_dimensionality=args.output_dim),
         )
 
         # The API returns embeddings in the same order as the input content.
         # Now, update the database rows.
-        logger.info("Storing embeddings in the database...")
+        if args.dry_run:
+            logger.info("Dry-run mode: skipping database writes")
+        else:
+            logger.info("Storing embeddings in the database...")
 
         # >>> result
         # EmbedContentResponse(
@@ -244,11 +311,12 @@ for i in range(0, len(rows_to_embed), BATCH_SIZE):
             # numpy array of float32, then to raw bytes (BLOB)
             vector_array = np.array(embedding_obj.values, dtype=np.float32)
             logger.info("Embedding vector shape: {}".format(vector_array.shape))
-            vector_blob = vector_array.tobytes()
 
-            # Use the .update() method from sqlite-minutils.
-            # The first argument is the primary key, the second is a dict of columns to update.
-            items.update(identifier, {"embedding": vector_blob, "embedding_model": embedding_model})
+            if not args.dry_run:
+                vector_blob = vector_array.tobytes()
+                # Use the .update() method from sqlite-minutils.
+                # The first argument is the primary key, the second is a dict of columns to update.
+                items.update(identifier, {"embedding": vector_blob, "embedding_model": embedding_model})
 
         logger.success(f"Batch {i // BATCH_SIZE + 1} completed successfully.")
 
@@ -258,7 +326,7 @@ for i in range(0, len(rows_to_embed), BATCH_SIZE):
 
     # Be a good citizen and respect API rate limits. https://ai.google.dev/gemini-api/docs/rate-limits#free-tier
     # Gemini Embedding 	100 requests per minute, 30,000 tokens per minute, 1,000 requests per day
-    time.sleep(60)
+    time.sleep(args.sleep_seconds)
 
 logger.info("Embedding process finished.")
 
