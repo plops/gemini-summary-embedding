@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RocketRecap - Latent Space Explorer</title>
+    <style>
+        /* --- NEO-BAUHAUS / SWISS DESIGN VARIABLES --- */
+        :root {
+            --bg-mint: #A0E8AF;
+            --bg-coral: #FF9B85;
+            --bg-slate: #708D9B;
+            --bg-mustard: #E8C547;
+            --bg-cream: #FDFBF7;
+            
+            --electric-blue: #0044FF;
+            --ink-black: #111111;
+            
+            --stroke-width: 3px;
+            --shadow-offset: 6px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: var(--bg-cream);
+            color: var(--ink-black);
+            overflow-x: hidden;
+        }
+
+        /* --- THE MAP (BACKGROUND) --- */
+        #voronoi-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            /* Subtly blur the map so the UI pops, unblur on interaction if desired */
+            opacity: 0.9;
+        }
+
+        /* SVG Layer for the Connector Line */
+        #ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* --- THE FOREGROUND UI --- */
+        .main-container {
+            position: relative;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding-top: 10vh;
+            padding-bottom: 100px;
+        }
+
+        .card {
+            background: white;
+            border: var(--stroke-width) solid var(--ink-black);
+            box-shadow: var(--shadow-offset) var(--shadow-offset) 0px var(--ink-black);
+            width: 90%;
+            max-width: 600px;
+            padding: 2rem;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin: 0 0 1.5rem 0;
+            text-transform: uppercase;
+            line-height: 0.9;
+        }
+
+        .tagline {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            color: #555;
+            display: block;
+        }
+
+        /* --- INPUTS --- */
+        .input-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            border: var(--stroke-width) solid var(--ink-black);
+            padding: 1rem;
+            font-size: 1rem;
+            font-family: inherit;
+            background: #fff;
+            border-radius: 0; /* Brutalist sharp corners */
+            margin-bottom: 1rem;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            background: #f0f8ff;
+        }
+
+        .btn-go {
+            background-color: var(--electric-blue);
+            color: white;
+            border: var(--stroke-width) solid var(--ink-black);
+            font-size: 1.2rem;
+            font-weight: 800;
+            padding: 1rem 2rem;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px var(--ink-black);
+            transition: all 0.1s;
+            text-transform: uppercase;
+            width: 100%;
+        }
+
+        .btn-go:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--ink-black);
+        }
+
+        .toggle-text-link {
+            font-size: 0.8rem;
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
+        /* --- RESULTS AREA --- */
+        #result-area {
+            display: none; /* Hidden by default */
+            margin-top: 2rem;
+            border-top: var(--stroke-width) solid var(--ink-black);
+            padding-top: 1rem;
+        }
+
+        .cluster-badge {
+            display: inline-block;
+            background: var(--bg-mustard);
+            border: 2px solid var(--ink-black);
+            padding: 0.2rem 0.5rem;
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            box-shadow: 2px 2px 0 var(--ink-black);
+        }
+
+        /* --- FAQ SECTION --- */
+        .faq-section {
+            width: 90%;
+            max-width: 800px;
+            background: white;
+            border: var(--stroke-width) solid var(--ink-black);
+            box-shadow: var(--shadow-offset) var(--shadow-offset) 0px var(--ink-black);
+            margin-top: 4rem;
+            padding: 2rem;
+        }
+
+        .faq-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            border-bottom: 4px solid var(--ink-black);
+            padding-bottom: 0.5rem;
+        }
+
+        details {
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 1rem;
+        }
+
+        summary {
+            font-weight: 700;
+            cursor: pointer;
+            list-style: none;
+            position: relative;
+            padding-right: 20px;
+        }
+
+        summary::after {
+            content: "+";
+            position: absolute;
+            right: 0;
+            font-weight: 900;
+        }
+
+        details[open] summary::after {
+            content: "-";
+        }
+
+        details p {
+            margin-top: 0.5rem;
+            line-height: 1.5;
+            color: #444;
+        }
+
+        /* Floating labels in the map */
+        .map-label {
+            position: absolute;
+            background: var(--ink-black);
+            color: white;
+            padding: 2px 8px;
+            font-size: 12px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            h1 { font-size: 2rem; }
+            .card { width: 95%; padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- BACKGROUND: The Voronoi Map -->
+    <canvas id="voronoi-canvas"></canvas>
+    
+    <!-- FOREGROUND: Connector Lines -->
+    <svg id="ui-overlay">
+        <line id="connector-line" x1="0" y1="0" x2="0" y2="0" stroke="black" stroke-width="4" stroke-linecap="square" style="display:none;" />
+        <circle id="target-point" cx="0" cy="0" r="6" fill="white" stroke="black" stroke-width="3" style="display:none;" />
+    </svg>
+
+    <!-- UI CONTAINER -->
+    <div class="main-container">
+        
+        <div class="card" id="main-card">
+            <h1>RocketRecap</h1>
+            <span class="tagline">Reclaim your algorithm. Visualize your knowledge.</span>
+
+            <div class="input-group">
+                <div id="url-input-container">
+                    <input type="text" id="video-url" placeholder="Paste YouTube Link...">
+                </div>
+                
+                <div id="text-input-container" style="display:none;">
+                    <textarea rows="6" placeholder="Paste article text, notes, or transcripts..."></textarea>
+                </div>
+
+                <div class="toggle-text-link" onclick="toggleInput()">
+                    Switch to Text/Article Mode
+                </div>
+
+                <button class="btn-go" id="go-btn">Summarize & Map</button>
+            </div>
+
+            <div id="result-area">
+                <div class="cluster-badge">NEIGHBORHOOD: PHILOSOPHY / AI ETHICS</div>
+                <h3>Summary Generated</h3>
+                <p>This video discusses the implications of Large Language Models on traditional epistemology. The speaker argues that knowledge acquisition is shifting from active research to passive curation...</p>
+                <p><strong>Status:</strong> Added to your personal map (Coordinates: 842, 112).</p>
+                <div style="margin-top:10px; font-size: 0.8rem; color: #666;">
+                    Cost: 0.04c (Flash Model)
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ SECTION -->
+        <div class="faq-section">
+            <div class="faq-title">FAQ & Tech Specs</div>
+            
+            <details>
+                <summary>What is the main purpose of this service?</summary>
+                <p>While this tool excels at creating concise summaries, its primary goal is to build a personal map of content consumption. By visualizing every video watched, users can reclaim control from recommendation algorithms and discover related content organically via the "local neighborhood" of topics.</p>
+            </details>
+
+            <details>
+                <summary>How does the Map work?</summary>
+                <p>The map uses UMAP (Uniform Manifold Approximation and Projection) to plot videos based on semantic similarity. Similar videos cluster together. The current map background represents a database of over 8,000 processed entries.</p>
+            </details>
+
+            <details>
+                <summary>Why do I get a "Transcript too short" error?</summary>
+                <p>This usually happens due to: 1. YouTube blocking automated downloads. 2. No captions available. 3. Language incompatibility. <br><strong>Workaround:</strong> Manually copy the transcript from YouTube and paste it into the text tool.</p>
+            </details>
+
+            <details>
+                <summary>Who pays for this?</summary>
+                <p>I built this for personal use. It runs on Google’s free developer tier (currently 20 Flash requests/day shared among all visitors).</p>
+            </details>
+
+            <details>
+                <summary>How does the AI "watch" the video?</summary>
+                <p>It downloads the text transcript via yt-dlp. The text is processed by an LLM (Gemini). It does not process the video pixels directly, only the spoken words.</p>
+            </details>
+        </div>
+    </div>
+
+    <!-- SCRIPT FOR LOGIC & VISUALIZATION -->
+    <script>
+        /* --- 1. VORONOI GENERATION (Simulated for Prototype) --- */
+        const canvas = document.getElementById('voronoi-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let sites = [];
+        const numSites = 60;
+        
+        // Colors from the palette
+        const colors = ['#A0E8AF', '#FF9B85', '#708D9B', '#E8C547'];
+        // Labels for clusters
+        const labels = ['TECH', 'PHILOSOPHY', 'CINEMA', 'SCIENCE', 'HISTORY'];
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            generateSites();
+            drawVoronoi();
+        }
+
+        function generateSites() {
+            sites = [];
+            for (let i = 0; i < numSites; i++) {
+                sites.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    label: (Math.random() > 0.8) ? labels[Math.floor(Math.random() * labels.length)] : null
+                });
+            }
+        }
+
+        // A simplified Voronoi rendering (Euclidean distance check)
+        // Note: For production, use d3-delaunay for performance. This is for visual prototyping only.
+        function drawVoronoi() {
+            // Draw background polygons (simulated by drawing circles for speed in this demo, 
+            // or we just draw the sites. To make it look like Voronoi tiles quickly without heavy math libraries:
+            
+            ctx.fillStyle = "#FDFBF7";
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw "Cells"
+            sites.forEach(site => {
+                ctx.beginPath();
+                // Draw irregular shapes to mimic voronoi cells roughly
+                ctx.fillStyle = site.color;
+                ctx.strokeStyle = "white";
+                ctx.lineWidth = 4;
+                
+                // Draw a large polygon around the center
+                ctx.moveTo(site.x + 30, site.y);
+                ctx.arc(site.x, site.y, Math.random() * 80 + 50, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            });
+
+            // Draw labels
+            ctx.font = "bold 16px Helvetica";
+            ctx.fillStyle = "black";
+            sites.forEach(site => {
+                if(site.label) {
+                    ctx.fillText(site.label, site.x - 20, site.y);
+                }
+            });
+        }
+
+        window.addEventListener('resize', resize);
+        resize(); // Init
+
+        /* --- 2. INTERACTION LOGIC --- */
+        
+        let isTextMode = false;
+        function toggleInput() {
+            isTextMode = !isTextMode;
+            document.getElementById('url-input-container').style.display = isTextMode ? 'none' : 'block';
+            document.getElementById('text-input-container').style.display = isTextMode ? 'block' : 'none';
+        }
+
+        document.getElementById('go-btn').addEventListener('click', () => {
+            const btn = document.getElementById('go-btn');
+            const input = document.getElementById('video-url');
+            
+            // 1. Loading State
+            btn.innerText = "Extracting & Computing Coordinates...";
+            btn.style.backgroundColor = "#333";
+
+            // 2. Select a "Target" cell in the background (Simulating the embedding result)
+            const randomSite = sites[Math.floor(Math.random() * sites.length)];
+            
+            // 3. Draw the Connector Line
+            drawConnector(input, randomSite);
+
+            // 4. Reveal Results after delay
+            setTimeout(() => {
+                document.getElementById('result-area').style.display = 'block';
+                btn.innerText = "Summarize & Map";
+                btn.style.backgroundColor = "var(--electric-blue)";
+                
+                // Scroll slightly to show result
+                document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 1500);
+        });
+
+        function drawConnector(domElement, targetCoords) {
+            const rect = domElement.getBoundingClientRect();
+            // Start from right side of input box
+            const startX = rect.right;
+            const startY = rect.top + (rect.height / 2);
+
+            const line = document.getElementById('connector-line');
+            const point = document.getElementById('target-point');
+            const svg = document.getElementById('ui-overlay');
+
+            line.style.display = 'block';
+            point.style.display = 'block';
+
+            // Animation loop for the line
+            let progress = 0;
+            function animateLine() {
+                progress += 0.05;
+                if (progress > 1) progress = 1;
+
+                const currentX = startX + (targetCoords.x - startX) * progress;
+                const currentY = startY + (targetCoords.y - startY) * progress;
+
+                line.setAttribute('x1', startX);
+                line.setAttribute('y1', startY);
+                line.setAttribute('x2', currentX);
+                line.setAttribute('y2', currentY);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateLine);
+                } else {
+                    // Place the dot
+                    point.setAttribute('cx', targetCoords.x);
+                    point.setAttribute('cy', targetCoords.y);
+                    
+                    // Highlight the specific cluster in canvas (simple circle overlay)
+                    ctx.beginPath();
+                    ctx.arc(targetCoords.x, targetCoords.y, 40, 0, Math.PI*2);
+                    ctx.strokeStyle = "black";
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+                }
+            }
+            animateLine();
+        }
+    </script>
+</body>
+</html>

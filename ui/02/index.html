@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RocketRecap | The Neural Forest</title>
+    <style>
+        /* --- IMPORTS & VARS --- */
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap');
+
+        :root {
+            --wood-dark: #3e2723;
+            --wood-light: #5d4037;
+            --parchment: #fdfbf7;
+            --moss-green: #1b3a1b;
+            --biolum-blue: #00ffff;
+            --biolum-purple: #bd00ff;
+            --amber-glow: #ffb300;
+            --brass: #b58d3c;
+        }
+
+        /* --- CORE LAYOUT --- */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Lora', serif;
+            background-color: #050a05; /* Deep forest darkness */
+            color: #dcdcdc;
+            overflow-x: hidden;
+        }
+
+        /* The Background Canvas (The Global Map) */
+        #neural-forest {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none; /* Let clicks pass through to UI */
+        }
+
+        /* --- THE WOODEN BOARD UI --- */
+        .main-container {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .wooden-board {
+            background: linear-gradient(135deg, var(--wood-dark), var(--wood-light));
+            width: 100%;
+            max-width: 700px;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 
+                0 20px 50px rgba(0,0,0,0.8),
+                inset 0 0 20px rgba(0,0,0,0.5),
+                0 0 0 5px #2a1b15; /* Bark edge */
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Wood Grain Texture Effect */
+        .wooden-board::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+            opacity: 0.4;
+            pointer-events: none;
+            border-radius: 15px;
+        }
+
+        h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 3rem;
+            text-align: center;
+            margin: 0;
+            background: linear-gradient(to bottom, #ffd700, #b8860b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            letter-spacing: 2px;
+        }
+
+        /* --- INPUT AREAS (Parchment) --- */
+        .input-group {
+            background-color: var(--parchment);
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+            color: #333;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: var(--wood-dark);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-family: 'Lora', serif;
+            font-size: 1rem;
+            outline: none;
+            resize: vertical;
+        }
+        
+        textarea { height: 80px; }
+
+        /* --- THE AMBER GEM BUTTON --- */
+        .gem-button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .amber-gem {
+            width: 150px;
+            height: 50px;
+            border-radius: 25px;
+            border: 2px solid #b8860b;
+            background: radial-gradient(circle at 30% 30%, #ffd700, #ff8c00, #5d4037);
+            color: #3e2723;
+            font-family: 'Cinzel', serif;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 
+                0 5px 15px rgba(255, 140, 0, 0.4),
+                inset 0 2px 5px rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .amber-gem::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(to bottom right, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 20%);
+            transform: rotate(30deg);
+            pointer-events: none;
+        }
+
+        .amber-gem:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px var(--amber-glow);
+        }
+
+        .amber-gem:active {
+            transform: scale(0.95);
+        }
+
+        /* --- THE MAGNIFYING GLASS (Latent Space Visualization Widget) --- */
+        .magnifying-glass-container {
+            position: absolute;
+            right: -280px;
+            top: 50px;
+            width: 250px;
+            height: 250px;
+            display: none; /* Hidden until search */
+        }
+        
+        @media (max-width: 1100px) {
+            .magnifying-glass-container {
+                position: relative;
+                right: auto;
+                top: auto;
+                margin-top: 30px;
+            }
+        }
+
+        .lens-frame {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 12px solid var(--brass);
+            background: rgba(0, 10, 0, 0.9);
+            box-shadow: 
+                0 10px 30px rgba(0,0,0,0.5),
+                inset 0 0 20px rgba(0,0,0,0.8);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* The Handle */
+        .lens-handle {
+            position: absolute;
+            bottom: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 100px;
+            background: linear-gradient(90deg, #3e2723, #5d4037, #3e2723);
+            z-index: -1;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+        }
+
+        #local-map-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .lens-overlay-text {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: #fff;
+            font-size: 0.8rem;
+            text-shadow: 0 2px 4px black;
+            pointer-events: none;
+        }
+
+        /* --- FAQ SECTION (The Scroll) --- */
+        .faq-section {
+            margin-top: 50px;
+            max-width: 800px;
+            width: 90%;
+            background: #e8e4d9;
+            color: #222;
+            padding: 40px;
+            border-radius: 2px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            margin-bottom: 50px;
+            clip-path: polygon(0% 0%, 100% 0%, 100% 98%, 98% 100%, 2% 100%, 0% 98%); /* Paper effect */
+        }
+
+        .faq-section h2 {
+            font-family: 'Cinzel', serif;
+            border-bottom: 2px solid var(--wood-light);
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+
+        .faq-item {
+            margin-bottom: 20px;
+        }
+
+        .faq-q {
+            font-weight: bold;
+            color: var(--wood-dark);
+            margin-bottom: 5px;
+        }
+
+        .faq-a {
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* --- MOSS DECORATIONS --- */
+        .moss-patch {
+            position: absolute;
+            background-color: #3a5f0b;
+            border-radius: 50%;
+            opacity: 0.8;
+            filter: blur(4px);
+            z-index: 11;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- The Global "Neural Forest" Background -->
+    <canvas id="neural-forest"></canvas>
+
+    <div class="main-container">
+        
+        <!-- The Wood Control Board -->
+        <div class="wooden-board">
+            <!-- Decorative Moss -->
+            <div class="moss-patch" style="top: -10px; left: 20px; width: 60px; height: 40px;"></div>
+            <div class="moss-patch" style="bottom: -15px; right: 40px; width: 80px; height: 50px;"></div>
+
+            <h1>RocketRecap</h1>
+
+            <div class="input-group">
+                <label for="video-link">Paste Video Link</label>
+                <input type="text" id="video-link" placeholder="https://youtube.com/watch?v=...">
+            </div>
+
+            <div class="input-group">
+                <label for="text-input">Paste Text / Articles</label>
+                <textarea id="text-input" placeholder="Paste article text or meeting notes here..."></textarea>
+            </div>
+
+            <div class="gem-button-container">
+                <button class="amber-gem" onclick="visualizeSummary()">SUMMARIZE</button>
+            </div>
+        </div>
+
+        <!-- The "Local Neighborhood" Magnifying Glass -->
+        <div class="magnifying-glass-container" id="mag-glass">
+            <div class="lens-frame">
+                <canvas id="local-map-canvas"></canvas>
+                <div class="lens-overlay-text">Local Neighborhood</div>
+            </div>
+            <div class="lens-handle"></div>
+        </div>
+
+        <!-- The FAQ Scroll -->
+        <div class="faq-section">
+            <h2 style="margin-top:0;">About the Service & Technology</h2>
+            
+            <div class="faq-item">
+                <div class="faq-q">Q: What is the main purpose of this service?</div>
+                <div class="faq-a">While this tool excels at creating concise summaries, its primary goal is to build a personal map of content consumption. By visualizing every video watched, users can reclaim control from recommendation algorithms.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-q">Q: Who pays for this?</div>
+                <div class="faq-a">Built primarily for personal use. To keep it free for others, I utilize Google’s free developer tier (currently ~20 requests/day).</div>
+            </div>
+
+            <h2>Map Status (Oct 2025)</h2>
+            <div class="faq-item">
+                <div class="faq-a">The current map is a manually generated UMAP plot of the first 4,000 entries. Now that the database has reached 8,000 entries, a regeneration is planned.</div>
+            </div>
+
+            <h2>Performance & Cost</h2>
+            <div class="faq-item">
+                <div class="faq-q">Approximate pricing per million tokens:</div>
+                <div class="faq-a">
+                    Flash Lite: $0.10 (Input) / $0.40 (Output)<br>
+                    Flash: $0.30 (Input) / $2.50 (Output)<br>
+                    Pro: $1.25 (Input) / $10.00 (Output)
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* --- 1. GLOBAL BACKGROUND VISUALIZATION (The Neural Forest) --- */
+        const canvas = document.getElementById('neural-forest');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let particles = [];
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Create random fireflies/nodes
+        for(let i = 0; i < 150; i++) {
+            particles.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5,
+                size: Math.random() * 2 + 1,
+                color: Math.random() > 0.5 ? '#00ffff' : '#bd00ff'
+            });
+        }
+
+        function drawForest() {
+            ctx.fillStyle = '#050a05';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw "Mycelium" connections (faint lines between close particles)
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+            ctx.lineWidth = 0.5;
+            
+            for(let i = 0; i < particles.length; i++) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+
+                // Bounce edges
+                if(p.x < 0 || p.x > width) p.vx *= -1;
+                if(p.y < 0 || p.y > height) p.vy *= -1;
+
+                // Draw glowing dot
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = p.color;
+                ctx.fill();
+                ctx.shadowBlur = 0; // reset
+
+                // Connect logic (simple O(N^2) for demo, optimize for prod)
+                for(let j = i + 1; j < particles.length; j++) {
+                    let p2 = particles[j];
+                    let dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+                    if(dist < 100) {
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(drawForest);
+        }
+        drawForest();
+
+        /* --- 2. LOCAL NEIGHBORHOOD SIMULATION (Inside the Magnifying Glass) --- */
+        function visualizeSummary() {
+            const glass = document.getElementById('mag-glass');
+            glass.style.display = 'block'; // Show the widget
+            
+            const localCanvas = document.getElementById('local-map-canvas');
+            const lCtx = localCanvas.getContext('2d');
+            
+            // Set internal resolution higher for sharpness
+            localCanvas.width = 400;
+            localCanvas.height = 400;
+
+            // Mock Data: 1 Central node + neighbors
+            let centerNode = { x: 200, y: 200, label: "Current Video" };
+            let neighbors = [];
+            for(let i=0; i<6; i++) {
+                let angle = (i / 6) * Math.PI * 2;
+                neighbors.push({
+                    x: 200 + Math.cos(angle) * 120,
+                    y: 200 + Math.sin(angle) * 120,
+                    label: "Related Topic " + (i+1)
+                });
+            }
+
+            function drawLocalMap() {
+                lCtx.clearRect(0, 0, 400, 400);
+
+                // Draw Connections
+                lCtx.strokeStyle = 'rgba(255, 215, 0, 0.6)'; // Gold thread
+                lCtx.lineWidth = 2;
+                neighbors.forEach(n => {
+                    lCtx.beginPath();
+                    lCtx.moveTo(centerNode.x, centerNode.y);
+                    lCtx.bezierCurveTo(
+                        centerNode.x + (n.x - centerNode.x)/2, centerNode.y, 
+                        n.x, n.y - (n.y - centerNode.y)/2, 
+                        n.x, n.y
+                    );
+                    lCtx.stroke();
+                });
+
+                // Draw Neighbors (Mushrooms)
+                neighbors.forEach(n => {
+                    // Stem
+                    lCtx.fillStyle = '#ddd';
+                    lCtx.fillRect(n.x - 3, n.y, 6, 15);
+                    // Cap
+                    lCtx.beginPath();
+                    lCtx.arc(n.x, n.y, 10, Math.PI, 0);
+                    lCtx.fillStyle = '#00ffff'; // Blue glow
+                    lCtx.shadowBlur = 15;
+                    lCtx.shadowColor = '#00ffff';
+                    lCtx.fill();
+                    lCtx.shadowBlur = 0;
+                });
+
+                // Draw Center Node (Big Mushroom)
+                lCtx.fillStyle = '#ddd';
+                lCtx.fillRect(centerNode.x - 5, centerNode.y, 10, 25);
+                lCtx.beginPath();
+                lCtx.arc(centerNode.x, centerNode.y, 20, Math.PI, 0);
+                lCtx.fillStyle = '#ffb300'; // Amber glow
+                lCtx.shadowBlur = 20;
+                lCtx.shadowColor = '#ffb300';
+                lCtx.fill();
+                lCtx.shadowBlur = 0;
+
+                // Simple bobbing animation
+                neighbors.forEach(n => {
+                    n.y += Math.sin(Date.now() / 500 + n.x) * 0.2;
+                });
+                
+                requestAnimationFrame(drawLocalMap);
+            }
+            drawLocalMap();
+
+            // Simulate "Scroll to result" behavior
+            glass.scrollIntoView({behavior: "smooth", block: "center"});
+        }
+    </script>
+</body>
+</html>

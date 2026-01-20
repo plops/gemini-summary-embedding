@@ -1,0 +1,20 @@
+
+create a website layout that matches the following description:
+Subject: A high-fidelity, photorealistic desktop UI design for "RocketRecap.com" in a "Cyberpunk Data-Science" aesthetic.
+Composition & Layout:
+The Environment (Background): A deep, immersive 2D UMAP scatter plot visualization representing a "Neural Latent Space."
+The background is a deep midnight obsidian (#050510).
+Thousands of glowing nodes (stars) float in the distance, connected by faint, neon-cyan constellation lines indicating semantic similarity.
+Cluster Visualization: Distinct neighborhoods of videos are grouped together like galaxies. Label these clusters with floating, holographic text in space: "Artificial Intelligence," "Space History," "Coding Tutorials," and "Philosophy."
+Detail: Tiny thumbnails of video still shots are visible inside the larger nodes near the center.
+The Interface (Foreground): A centered, floating "Glassmorphism" command card (frosted glass effect with a thin white border).
+Header: At the top of the card, render the text "RocketRecap" in a bold, futuristic sans-serif font (White). Subtitle: "Reclaim Your Feed."
+Input Section: A dual-mode input area.
+Left side: A field with a YouTube icon labeled "Paste YouTube Link."
+Right side: A toggle tab labeled "Text / Article Mode."
+Action: A prominent, pill-shaped button glowing in Electric Orange (#FF8C00) with the text "SUMMARIZE."
+Map Integration (The "Neighborhood" View):
+To the right of the main card, show a "Live Neighborhood" widget connected to the input field by a data line.
+This widget displays a zoomed-in section of the star map, showing a central "Current Video" node surrounded by 3-4 related nodes labeled "Recommended by Neural Proximity" rather than "Algorithm."
+Lighting & Atmosphere: Cinematic lighting with a soft blue rim light hitting the edges of the glass interface. The nodes in the background emit a soft bloom.
+Technical Style: 8k resolution, UI/UX portfolio style (Dribbble/Behance), clean typography, ray-traced reflections on the glass.

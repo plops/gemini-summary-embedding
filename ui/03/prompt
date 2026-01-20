@@ -1,0 +1,33 @@
+Subject: A high-fidelity, desktop UI design for "RocketRecap.com" featuring a "Neo-Bauhaus Data Visualization" aesthetic. Flat design, bold colors, and geometric precision.
+
+Composition & Layout:
+
+The Environment (The Map of YouTube):
+
+Concept: A 2D "Voronoi Tessellation" background. The screen is filled with puzzle-like geometric cells fitting perfectly together.
+
+The Data: Each cell represents a video. The cells are colored by topic cluster using a soft, sophisticated pastel palette (Mint Green, Soft Coral, Slate Blue, Mustard Yellow).
+
+Visual Logic: Similar videos touch each other, creating "zones" of color.
+
+Detail: Inside a few larger, key cells, subtly mask a black-and-white still shot of a video, blended into the color.
+
+Labels: Bold, sans-serif typography floating over the color zones: "TECH," "PHILOSOPHY," "CINEMA."
+
+The Interface (Foreground):
+
+Container: A stark, high-contrast white rectangular card with a heavy black drop shadow (Brutalist minimalism). Positioned in the center.
+
+Header: "RocketRecap" in massive, heavy black Helvetica-style font.
+
+Input Section: A thick black outlined input field. Placeholder text: "Paste YouTube Link."
+
+Action: A square button in Electric Blue with the word "GO" in white. Simple, punchy, tactile.
+
+The "Neighborhood" Integration:
+
+To the right of the card, the mosaic cells are "highlighted" (brighter colors, thick white outlines).
+
+A "Call-out Line" (thick black line) connects the input box to a specific cell in the background mosaic, visually indicating: “This video belongs right here in the map.”
+
+Style: 4k interface design, Figma, vector art, clean lines, high contrast, organized chaos, Swiss Design style.
